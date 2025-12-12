@@ -27,16 +27,22 @@ def convert_video_to_audio(video_file: str, audio_dir: str):
 # Perform source separation and return the path to the instrumental audio file
 def separation(input_file: str, output_dir: str, model_filename: str, output_format: str, custom_output_names: dict,  model_file_dir: str = "/tmp/audio-separator-models/"):
     import torch
-    use_cuda = torch.cuda.is_available()
     
+    # audio-separator v0.39.0+ automatically uses CUDA when available
+    # No need for use_cuda parameter - it auto-detects
     separator = Separator(
         output_format=output_format, 
         output_dir=output_dir, 
         model_file_dir=model_file_dir,
-        use_cuda=use_cuda,  # Enable GPU when available
         log_level=logging.INFO
     )
-    logger.info(f"Audio separator using CUDA: {use_cuda}")
+    
+    # Log GPU status
+    if torch.cuda.is_available():
+        logger.info(f"✅ Audio separator will use CUDA (auto-detected)")
+    else:
+        logger.info(f"ℹ️  Audio separator using CPU")
+    
     separator.load_model(model_filename=model_filename)
     output_files = separator.separate(input_file, custom_output_names=custom_output_names)
     return output_files
