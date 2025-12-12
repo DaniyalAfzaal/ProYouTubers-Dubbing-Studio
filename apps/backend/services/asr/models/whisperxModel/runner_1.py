@@ -106,24 +106,32 @@ if __name__ == "__main__":
             diarize_segments = None
             if diarize_enabled and diarization_model_name:
                 hf_token = os.getenv("HF_TOKEN")
-                diarize_start = time.perf_counter()
-                diarize_model = DiarizationPipeline(
-                    model_name=diarization_model_name,
-                    use_auth_token=hf_token,
-                    device=device,
-                )
-                diarize_segments = diarize_model(
-                    audio,
-                    min_speakers=min_speakers,
-                    max_speakers=max_speakers,
-                )
-                logger.info(
-                    "Diarization produced %d segments in %.2fs.",
-                    len(diarize_segments),
-                    time.perf_counter() - diarize_start,
-                )
-                del diarize_model
-                _clear_cuda_cache()
+                try:
+                    diarize_start = time.perf_counter()
+                    diarize_model = DiarizationPipeline(
+                        model_name=diarization_model_name,
+                        use_auth_token=hf_token,
+                        device=device,
+                    )
+                    diarize_segments = diarize_model(
+                        audio,
+                        min_speakers=min_speakers,
+                        max_speakers=max_speakers,
+                    )
+                    logger.info(
+                        "Diarization produced %d segments in %.2fs.",
+                        len(diarize_segments),
+                        time.perf_counter() - diarize_start,
+                    )
+                    del diarize_model
+                    _clear_cuda_cache()
+                except Exception as e:
+                    logger.warning(
+                        "Diarization failed (%s: %s). Continuing without speaker labels.", 
+                        type(e).__name__, 
+                        str(e)
+                    )
+                    diarize_segments = None
             elif diarize_enabled:
                 logger.info("Diarization requested but no model configured; skipping speaker attribution.")
             else:
