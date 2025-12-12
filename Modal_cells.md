@@ -58,7 +58,7 @@ with modal.enable_output():
         encrypted_ports=[8000, 5173],  # orchestrator and UI
         cpu=4,           # Reduced CPU (GPU handles heavy compute)
         memory=24576,    # 24 GiB RAM for GPU model loading
-        gpu=modal.gpu.L4(),  # NVIDIA L4 with 24GB VRAM
+        gpu="L4",        # NVIDIA L4 with 24GB VRAM (new syntax)
         timeout=3*60*60,     # 3h lifetime
         idle_timeout=60*60,  # 1h idle timeout
         verbose=True,
