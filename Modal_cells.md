@@ -80,7 +80,7 @@ print("Helper defined.")
 
 CELL 5:
 # Clone ProYouTubers Dubbing Studio repository
-REPO_URL = 'https://github.com/YourUsername/ProYouTubers-Dubbing-Studio.git'
+REPO_URL = 'https://github.com/DaniyalAfzaal/ProYouTubers-Dubbing-Studio.git'
 
 # Clone the latest version
 sh(f'cd /root && rm -rf proyoutubers-dubbing && git clone --depth 1 {REPO_URL} proyoutubers-dubbing')
