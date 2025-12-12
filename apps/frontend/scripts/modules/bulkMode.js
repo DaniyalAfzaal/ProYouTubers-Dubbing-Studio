@@ -103,6 +103,13 @@ export const bulkMode = {
             return;
         }
 
+        // FIX: Frontend validation for max 100 videos
+        const totalVideos = (filesInput?.files?.length || 0) + (urlsText ? urlsText.split('\n').filter(u => u.trim()).length : 0);
+        if (totalVideos > 100) {
+            alert('Maximum 100 videos allowed per batch');
+            return;
+        }
+
         // Add all other form options (same as single mode)
         const dubForm = document.getElementById('dub-form');
         const singleFormData = new FormData(dubForm);
@@ -180,8 +187,18 @@ export const bulkMode = {
                 }
             } catch (error) {
                 console.error('Polling error:', error);
+                // FIX: Stop polling after 5 consecutive failures
+                this.pollErrorCount = (this.pollErrorCount || 0) + 1;
+                if (this.pollErrorCount >= 5) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                    console.error('Stopped polling after 5 failures');
+                }
             }
         }, 2000); // Poll every 2 seconds
+
+        // FIX: Reset error count on successful start
+        this.pollErrorCount = 0;
     },
 
     updateProgress(data) {
