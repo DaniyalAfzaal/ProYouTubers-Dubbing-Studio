@@ -9,32 +9,19 @@ import modal
 
 app = modal.App.lookup('proyoutubers-dubbing-modal', create_if_missing=True)
 
-# CUDA-enabled image with GPU support for faster processing
+# Use Modal's CUDA image with PyTorch pre-installed (includes cuDNN)
 proyoutubers_image = (
-    modal.Image.debian_slim(python_version='3.11')
+    modal.Image.from_registry("nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04", add_python="3.11")
     .apt_install(
         'git','make','ffmpeg','rubberband-cli','libsndfile1',
         'openjdk-17-jre-headless','ca-certificates','curl',
-        'espeak-ng','sox','libsox-fmt-all','nginx',
-        'wget', 'gnupg2'
-    )
-    # Install CUDA 12.x cuDNN libraries
-    .run_commands(
-        # Add NVIDIA CUDA repository for Debian
-        'wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb',
-        'dpkg -i cuda-keyring_1.1-1_all.deb',
-        'apt-get update',
-        # Install cuDNN 8 for CUDA 12
-        'apt-get install -y libcudnn8 libcudnn8-dev',
-        # Clean up
-        'apt-get clean',
-        'rm -f cuda-keyring_1.1-1_all.deb'
+        'espeak-ng','sox','libsox-fmt-all','nginx'
     )
     .pip_install('uv>=0.5.0')
-    # Install PyTorch with CUDA 12.1 support for GPU acceleration
+    # Install PyTorch with CUDA 12.1 support
     .run_commands(
         'pip install torch==2.5.0 torchaudio==2.5.0 --index-url https://download.pytorch.org/whl/cu121',
-        'python -c "import torch; print(f\\"PyTorch {torch.__version__} installed\\")"'
+        'python -c "import torch; print(f\\"PyTorch {torch.__version__} with CUDA {torch.version.cuda}\\")"'
     )
 )
 
@@ -48,7 +35,7 @@ hf_secret = modal.Secret.from_dict({'HF_TOKEN': HF_TOKEN})
 DEEPL_API_KEY = ''  # Optional: Add your DeepL API key here
 deepl_secret = modal.Secret.from_dict({'DEEPL_API_KEY': DEEPL_API_KEY}) if DEEPL_API_KEY else None
 
-print("Modal app, image and secret configured with CUDA support.")
+print("Modal app, image and secret configured with CUDA + cuDNN support.")
 if DEEPL_API_KEY:
     print("✅ DeepL API key configured for premium translation.")
 else:
