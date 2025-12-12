@@ -49,6 +49,16 @@ if __name__ == "__main__":
             max_speakers = extra.get("max_speakers")
 
             device = extra.get("device") or os.getenv("WHISPERX_DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
+            
+            # Verify CUDA is actually accessible (subprocess may not have GPU access)
+            if device == "cuda":
+                try:
+                    torch.cuda.current_device()
+                    logger.info("CUDA device verified for alignment.")
+                except RuntimeError:
+                    logger.warning("CUDA not accessible in alignment subprocess, falling back to CPU")
+                    device = "cpu"
+            
             if device == "cpu":
                 logger.info("Running alignment on CPU.")
 
@@ -65,10 +75,21 @@ if __name__ == "__main__":
             audio = whisperx.load_audio(req.audio_url)
 
             align_start = time.perf_counter()
-            model_a, metadata = whisperx.load_align_model(
-                language_code=req.language,
-                device=device,
-            )
+            try:
+                model_a, metadata = whisperx.load_align_model(
+                    language_code=req.language,
+                    device=device,
+                )
+            except RuntimeError as e:
+                if "CUDA" in str(e) and device == "cuda":
+                    logger.warning(f"Failed to load alignment model on CUDA: {e}. Retrying on CPU...")
+                    device = "cpu"
+                    model_a, metadata = whisperx.load_align_model(
+                        language_code=req.language,
+                        device=device,
+                    )
+                else:
+                    raise
             logger.info("Loaded alignment model in %.2fs.", time.perf_counter() - align_start)
 
             align_compute_start = time.perf_counter()
