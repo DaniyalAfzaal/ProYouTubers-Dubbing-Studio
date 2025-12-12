@@ -15,7 +15,20 @@ proyoutubers_image = (
     .apt_install(
         'git','make','ffmpeg','rubberband-cli','libsndfile1',
         'openjdk-17-jre-headless','ca-certificates','curl',
-        'espeak-ng','sox','libsox-fmt-all','nginx'
+        'espeak-ng','sox','libsox-fmt-all','nginx',
+        'wget', 'gnupg2'
+    )
+    # Install CUDA 12.x cuDNN libraries
+    .run_commands(
+        # Add NVIDIA CUDA repository for Debian
+        'wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb',
+        'dpkg -i cuda-keyring_1.1-1_all.deb',
+        'apt-get update',
+        # Install cuDNN 8 for CUDA 12
+        'apt-get install -y libcudnn8 libcudnn8-dev',
+        # Clean up
+        'apt-get clean',
+        'rm -f cuda-keyring_1.1-1_all.deb'
     )
     .pip_install('uv>=0.5.0')
     # Install PyTorch with CUDA 12.1 support for GPU acceleration
