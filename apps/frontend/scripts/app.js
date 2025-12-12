@@ -8,6 +8,7 @@ import { handlers } from "./modules/handlers.js";
 import { transcriptionReview, alignmentReview, ttsReview } from "./modules/reviews.js";
 import { theme } from "./modules/theme.js";
 import { bulkMode } from "./modules/bulkMode.js";
+import { downloads } from "./modules/downloads.js";
 
 const initInvolveMode = () => {
   if (!el.modeToggle) return;
@@ -171,7 +172,8 @@ const initUnloadCleanup = () => {
 
 const initApp = () => {
   theme.init();
-  bulkMode.init();  // Initialize bulk mode handlers
+  bulkMode.init();
+  downloads.init();  // Initialize downloads manager
   initInvolveMode();
   initReviewButtons();
   initInitialUI();

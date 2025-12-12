@@ -21,16 +21,24 @@
             } catch (_) { }
         })();
     </script>
-    <header>
-        <div class="brand">
-            <img src="./assets/ProYouTubers-Logo.jpg" alt="ProYouTubers" class="brand-logo">
-            <p class="tagline">Winning isn't everything, but wanting to win is.</p>
+        <header>
+        <div class="header-container">
+            <div class="brand-typography">
+                <h1 class="brand-name">ProYouTubers</h1>
+                <h2 class="brand-subtitle">Dubbing Studio</h2>
+                <p class="brand-tagline">Winning isn't everything, but wanting to win is.</p>
+            </div>
+            <nav class="header-nav">
+                <button type="button" class="nav-btn" id="downloads-btn">
+                    <span class="btn-icon">📥</span>
+                    <span class="btn-label">Downloads</span>
+                </button>
+                <button type="button" class="theme-toggle" id="theme-toggle">
+                    <span aria-hidden="true">🌙</span>
+                    <span class="theme-label">Dark</span>
+                </button>
+            </nav>
         </div>
-        </div>
-        <button type="button" class="theme-toggle" id="theme-toggle">
-            <span aria-hidden="true">🌙</span>
-            <span class="theme-label">Dark</span>
-        </button>
     </header>
 
     <main>
@@ -319,6 +327,33 @@
 
             <div class="video-list" id="bulk-video-list">
                 <!-- Populated dynamically -->
+            </div>
+        </section>
+
+        <!-- Downloads Manager Page -->
+        <section id="downloads-page" class="downloads-page" hidden>
+            <div class="downloads-header">
+                <h1>📥 Downloads Manager</h1>
+                <button type="button" class="btn-close" id="close-downloads">✕ Close</button>
+            </div>
+
+            <div class="downloads-content">
+                <div class="downloads-sidebar">
+                    <h3>Process History</h3>
+                    <div id="process-list" class="process-list">
+                        <div class="empty-state">
+                            <span class="empty-icon">📋</span>
+                            <p>No completed processes yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="downloads-main">
+                    <div id="download-details" class="download-details empty-state">
+                        <span class="empty-icon">🎬</span>
+                        <p>Select a process to view details</p>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
