@@ -7,6 +7,7 @@ import { targetLangs } from "./modules/targetLangs.js";
 import { handlers } from "./modules/handlers.js";
 import { transcriptionReview, alignmentReview, ttsReview } from "./modules/reviews.js";
 import { theme } from "./modules/theme.js";
+import { bulkMode } from "./modules/bulkMode.js";
 
 const initInvolveMode = () => {
   if (!el.modeToggle) return;
@@ -163,13 +164,14 @@ const initUnloadCleanup = () => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: params,
         keepalive: true
-      }).catch(() => {});
+      }).catch(() => { });
     }
   });
 };
 
 const initApp = () => {
   theme.init();
+  bulkMode.init();  // Initialize bulk mode handlers
   initInvolveMode();
   initReviewButtons();
   initInitialUI();
