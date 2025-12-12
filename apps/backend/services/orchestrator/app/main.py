@@ -2317,6 +2317,7 @@ async def dub(
 class BulkJob:
     batch_id: str
     total: int
+    timestamp: float = field(default_factory=lambda: time.time())  # FIX: Add timestamp
     completed: int = 0
     failed: int = 0
     processing: int = 0
@@ -2326,19 +2327,27 @@ class BulkJob:
 BULK_JOBS: Dict[str, BulkJob] = {}
 BULK_QUEUE: Optional[asyncio.Queue] = None
 BULK_WORKERS_STARTED = False
+_BULK_WORKERS_LOCK = asyncio.Lock()  # FIX: Add lock for startup
+BULK_JOBS_MAX_AGE = 3600  # 1 hour
 
 
 async def start_bulk_workers():
-    global BULK_WORKERS_STARTED, BULK_QUEUE
-    if BULK_WORKERS_STARTED:
-        return
-    BULK_QUEUE = asyncio.Queue()
-    BULK_WORKERS_STARTED = True
-    # FIX: Store worker tasks for cleanup
-    for i in range(2):
-        task = asyncio.create_task(bulk_worker(i))
-        task.set_name(f"bulk_worker_{i}")
-    logger.info("Started 2 bulk processing workers")
+    # FIX: Use lock to prevent race condition
+    async with _BULK_WORKERS_LOCK:
+        global BULK_WORKERS_STARTED, BULK_QUEUE
+        if BULK_WORKERS_STARTED:
+            return
+        BULK_QUEUE = asyncio.Queue()
+        BULK_WORKERS_STARTED = True
+        # FIX: Store worker tasks for cleanup
+        for i in range(2):
+            task = asyncio.create_task(bulk_worker(i))
+            task.set_name(f"bulk_worker_{i}")
+        
+        # Start cleanup task
+        asyncio.create_task(cleanup_old_bulk_jobs())
+        
+        logger.info("Started 2 bulk processing workers")
 
 
 async def bulk_worker(worker_id: int):
@@ -2388,6 +2397,30 @@ async def bulk_worker(worker_id: int):
                 BULK_QUEUE.task_done()
 
 
+
+
+async def cleanup_old_bulk_jobs():
+    """Periodically cleanup completed bulk jobs older than 1 hour"""
+    while True:
+        await asyncio.sleep(300)  # Every 5 minutes
+        try:
+            now = time.time()
+            to_delete = []
+            
+            for batch_id, job in list(BULK_JOBS.items()):
+                # Remove if completed and older than max age
+                if (job.completed + job.failed >= job.total and 
+                    (now - job.timestamp) > BULK_JOBS_MAX_AGE):
+                    to_delete.append(batch_id)
+            
+            for batch_id in to_delete:
+                del BULK_JOBS[batch_id]
+                logger.info(f"Cleaned up old bulk job: {batch_id}")
+                
+        except Exception as e:
+            logger.error(f"Error in cleanup task: {e}", exc_info=True)
+
+
 @app.post(f"{API_PREFIX}/jobs/bulk-run")
 async def bulk_run(
     files: List[UploadFile] = File(None),
@@ -2425,6 +2458,12 @@ async def bulk_run(
 
 @app.get(f"{API_PREFIX}/jobs/bulk-status/{{batch_id}}")
 async def bulk_status(batch_id: str):
+    # FIX: Validate UUID format
+    try:
+        uuid.UUID(batch_id)
+    except ValueError:
+        raise HTTPException(400, "Invalid batch ID format")
+    
     job = BULK_JOBS.get(batch_id)
     if not job:
         raise HTTPException(404, "Batch not found")

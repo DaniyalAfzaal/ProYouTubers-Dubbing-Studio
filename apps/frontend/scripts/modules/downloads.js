@@ -54,7 +54,18 @@ export const downloads = {
         try {
             localStorage.setItem('dubbing_processes', JSON.stringify(this.processes));
         } catch (e) {
-            console.error('Failed to save processes to localStorage:', e);
+            // FIX: Handle quota exceeded error
+            if (e.name === 'QuotaExceededError') {
+                console.warn('localStorage quota exceeded, removing oldest half');
+                this.processes = this.processes.slice(0, 25);
+                try {
+                    localStorage.setItem('dubbing_processes', JSON.stringify(this.processes));
+                } catch (retryError) {
+                    console.error('Failed to save even after cleanup:', retryError);
+                }
+            } else {
+                console.error('Failed to save processes to localStorage:', e);
+            }
         }
     },
 
@@ -133,12 +144,13 @@ export const downloads = {
                 <div class="process-logs">${this.escapeHtml(process.logs || 'No logs available')}</div>
             </div>
         `;
-        
+
         // FIX: Add event listeners for download buttons (XSS safe)
         details.querySelectorAll('.download-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const url = btn.dataset.url;
-                if (url && url !== '#' && url !== '') {
+                // FIX: More robust URL validation
+                if (url && url.trim() && url !== '#' && url !== '') {
                     window.open(url, '_blank');
                 }
             });
