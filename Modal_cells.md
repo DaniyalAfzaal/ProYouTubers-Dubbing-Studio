@@ -16,7 +16,7 @@ proyoutubers_image = (
         'git','make','ffmpeg','rubberband-cli','libsndfile1',
         'openjdk-17-jre-headless','ca-certificates','curl',
         'espeak-ng','sox','libsox-fmt-all','nginx',
-        'build-essential','python3-dev'  # For compiling C extensions (diffq)
+        'build-essential','python3-dev','clang'  # Compiler tools for building C extensions
     )
     .pip_install('uv>=0.5.0')
     # Install PyTorch with CUDA 12.1 support
