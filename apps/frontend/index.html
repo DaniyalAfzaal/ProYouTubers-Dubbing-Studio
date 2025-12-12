@@ -1,29 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>ProYouTubers Dubbing Studio</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="./styles/main.css">
 </head>
+
 <body>
     <script>
         (function () {
-        try {
-            const KEY = "proyoutubers-ui-theme";
-            const stored = localStorage.getItem(KEY);
-            const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-            const theme = stored || (prefersDark ? "dark" : "light");
-            document.body.dataset.theme = theme;
-            document.body.style.colorScheme = theme;
-        } catch (_) {}
+            try {
+                const KEY = "proyoutubers-ui-theme";
+                const stored = localStorage.getItem(KEY);
+                const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+                const theme = stored || (prefersDark ? "dark" : "light");
+                document.body.dataset.theme = theme;
+                document.body.style.colorScheme = theme;
+            } catch (_) { }
         })();
     </script>
     <header>
         <div class="brand">
             <img src="./assets/ProYouTubers-Logo.jpg" alt="ProYouTubers" class="brand-logo">
-                <p class="tagline">Winning isn't everything, but wanting to win is.</p>
-            </div>
+            <p class="tagline">Winning isn't everything, but wanting to win is.</p>
+        </div>
         </div>
         <button type="button" class="theme-toggle" id="theme-toggle">
             <span aria-hidden="true">🌙</span>
@@ -32,21 +34,35 @@
     </header>
 
     <main>
-        
+
         <div class="previews">
-                <div class="preview-card empty" id="source-preview-card">
-                    <div class="preview-header">
-                        <h2>Source Preview</h2>
-                        <span class="preview-status" id="source-preview-text">Waiting for media…</span>
-                    </div>
-                    <video id="source-video" controls playsinline></video>
+            <div class="preview-card empty" id="source-preview-card">
+                <div class="preview-header">
+                    <h2>Source Preview</h2>
+                    <span class="preview-status" id="source-preview-text">Waiting for media…</span>
                 </div>
+                <video id="source-video" controls playsinline></video>
+            </div>
         </div>
-        
+
         <section>
+            <!-- Mode Selector -->
+            <div class="mode-selector">
+                <label class="mode-option">
+                    <input type="radio" name="processing-mode" value="single" checked>
+                    <span>🎬 Single Video</span>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="processing-mode" value="bulk">
+                    <span>📚 Bulk Mode (Up to 100 videos)</span>
+                </label>
+            </div>
+
             <form id="dub-form">
                 <input type="hidden" name="reuse_media_token" id="reuse-media-token">
-                <fieldset>
+
+                <!-- Single Video Mode Inputs -->
+                <fieldset id="single-mode-inputs">
                     <legend>Media</legend>
                     <label>
                         Source Video / Audio
@@ -60,7 +76,8 @@
                             <span class="download-label" id="download-label">Downloading…</span>
                         </div>
                     </label>
-                    <p class="hint">Provide either a local file or a public video URL (YouTube, Instagram, TikTok, ...).</p>
+                    <p class="hint">Provide either a local file or a public video URL (YouTube, Instagram, TikTok, ...).
+                    </p>
                     <div class="flex">
                         <label>
                             Task
@@ -71,16 +88,38 @@
                         </label>
                         <label>
                             Source Language
-                            <input type="text" name="source_lang" list="language-list" placeholder="auto-detect (leave blank)">
+                            <input type="text" name="source_lang" list="language-list"
+                                placeholder="auto-detect (leave blank)">
                         </label>
                         <label>
                             Target Languages
                             <div class="tag-input" id="target-lang-field">
                                 <div class="tag-input__tags" id="target-lang-tags"></div>
-                                <input type="text" id="target-lang-input" list="language-list" placeholder="Type code and press Enter">
+                                <input type="text" id="target-lang-input" list="language-list"
+                                    placeholder="Type code and press Enter">
                             </div>
                         </label>
                     </div>
+                </fieldset>
+
+                <!-- Bulk Mode Inputs -->
+                <fieldset id="bulk-mode-inputs" hidden>
+                    <legend>Bulk Media Input</legend>
+
+                    <label>
+                        Upload Multiple Files
+                        <input type="file" id="bulk-files" multiple accept="video/*,audio/*">
+                        <span class="file-count" id="bulk-file-count"></span>
+                    </label>
+
+                    <label>
+                        Or Paste URLs (one per line)
+                        <textarea id="bulk-urls" rows="10"
+                            placeholder="https://youtube.com/watch?v=...&#10;https://example.com/video2.mp4&#10;https://example.com/video3.mp4"></textarea>
+                        <span class="url-count" id="bulk-url-count"></span>
+                    </label>
+
+                    <p class="hint">Maximum 100 videos per batch. Options below apply to all videos.</p>
                 </fieldset>
 
                 <fieldset>
@@ -173,8 +212,10 @@
                 <div class="actions">
                     <div class="button-group">
                         <button type="submit" id="run-btn" class="primary">Run dubbing pipeline</button>
-                        <button type="button" id="mode-toggle-btn" class="secondary mode-toggle" aria-pressed="false">Involve mode: Off</button>
-                        <button type="button" id="interrupt-btn" class="secondary" disabled hidden>Interrupt run</button>
+                        <button type="button" id="mode-toggle-btn" class="secondary mode-toggle"
+                            aria-pressed="false">Involve mode: Off</button>
+                        <button type="button" id="interrupt-btn" class="secondary" disabled hidden>Interrupt
+                            run</button>
                     </div>
                     <span class="badge" id="status-badge">Idle</span>
                 </div>
@@ -188,25 +229,30 @@
             <div class="review-card" id="transcription-review" hidden>
                 <div class="review-header">
                     <h2>Transcription Review</h2>
-                    <span class="review-status" id="transcription-review-status">Pipeline paused for transcription review.</span>
+                    <span class="review-status" id="transcription-review-status">Pipeline paused for transcription
+                        review.</span>
                 </div>
                 <div class="review-body" id="transcription-review-body">
                     <p class="review-instructions">Review and adjust each segment before continuing.</p>
                 </div>
                 <div class="review-actions">
                     <button type="button" id="transcription-review-add" class="secondary">Add segment</button>
-                    <button type="button" id="transcription-review-apply" class="primary">Apply corrections &amp; continue</button>
-                    <button type="button" id="transcription-review-skip" class="secondary">Continue without changes</button>
+                    <button type="button" id="transcription-review-apply" class="primary">Apply corrections &amp;
+                        continue</button>
+                    <button type="button" id="transcription-review-skip" class="secondary">Continue without
+                        changes</button>
                 </div>
             </div>
 
             <div class="review-card" id="alignment-review" hidden>
                 <div class="review-header">
                     <h2>Alignment &amp; Speaker Review</h2>
-                    <span class="review-status" id="alignment-review-status">Pipeline paused for alignment review.</span>
+                    <span class="review-status" id="alignment-review-status">Pipeline paused for alignment
+                        review.</span>
                 </div>
                 <div class="review-body" id="alignment-review-body">
-                    <p class="review-instructions">Adjust segment timings, text, and speakers. You can add, delete, or merge segments as needed.</p>
+                    <p class="review-instructions">Adjust segment timings, text, and speakers. You can add, delete, or
+                        merge segments as needed.</p>
                 </div>
                 <div class="review-actions">
                     <button type="button" id="alignment-review-add" class="secondary">Add segment</button>
@@ -221,7 +267,8 @@
                     <span class="review-status" id="tts-review-status">Pipeline paused for TTS review.</span>
                 </div>
                 <div class="review-body" id="tts-review-body">
-                    <p class="review-instructions">Listen to each synthesized segment, adjust text or language, and regenerate as needed.</p>
+                    <p class="review-instructions">Listen to each synthesized segment, adjust text or language, and
+                        regenerate as needed.</p>
                 </div>
                 <div class="review-actions">
                     <button type="button" id="tts-review-apply" class="primary">Apply changes &amp; continue</button>
@@ -252,7 +299,30 @@
             <datalist id="language-list"></datalist>
             <datalist id="speaker-list"></datalist>
         </section>
+
+        <!-- Bulk Progress Display -->
+        <section id="bulk-progress" class="bulk-progress-container" hidden>
+            <h2>Batch Processing Progress</h2>
+
+            <div class="overall-progress">
+                <div class="progress-stats">
+                    <span>Completed: <strong id="bulk-completed">0</strong></span>
+                    <span>Processing: <strong id="bulk-processing">0</strong></span>
+                    <span>Queued: <strong id="bulk-queued">0</strong></span>
+                    <span>Failed: <strong id="bulk-failed">0</strong></span>
+                    <span>Total: <strong id="bulk-total">0</strong></span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="bulk-progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="video-list" id="bulk-video-list">
+                <!-- Populated dynamically -->
+            </div>
+        </section>
     </main>
     <script type="module" src="scripts/app.js"></script>
 </body>
+
 </html>
