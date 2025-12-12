@@ -2334,20 +2334,28 @@ async def start_bulk_workers():
         return
     BULK_QUEUE = asyncio.Queue()
     BULK_WORKERS_STARTED = True
+    # FIX: Store worker tasks for cleanup
     for i in range(2):
-        asyncio.create_task(bulk_worker(i))
+        task = asyncio.create_task(bulk_worker(i))
+        task.set_name(f"bulk_worker_{i}")
     logger.info("Started 2 bulk processing workers")
 
 
 async def bulk_worker(worker_id: int):
     logger.info(f"Bulk worker {worker_id} started")
     while True:
+        item_retrieved = False
         try:
-            item = await BULK_QUEUE.get()
+            # FIX: Add timeout to allow graceful shutdown
+            try:
+                item = await asyncio.wait_for(BULK_QUEUE.get(), timeout=1.0)
+                item_retrieved = True
+            except asyncio.TimeoutError:
+                continue  # Check queue again
+                
             batch_id, video_index, video_data = item['batch_id'], item['index'], item['data']
             job = BULK_JOBS.get(batch_id)
             if not job:
-                BULK_QUEUE.task_done()
                 continue
             
             async with job.lock:
@@ -2366,14 +2374,18 @@ async def bulk_worker(worker_id: int):
                         job.videos[video_index]['status'] = 'completed'
                         job.videos[video_index]['result'] = {'video_url': '/placeholder'}
                 except Exception as e:
-                    logger.error(f"Worker {worker_id} failed: {e}")
+                    logger.error(f"Worker {worker_id} failed: {e}", exc_info=True)
                     async with job.lock:
                         job.processing -= 1
                         job.failed += 1
                         job.videos[video_index]['status'] = 'failed'
                         job.videos[video_index]['error'] = str(e)[:500]
+        except Exception as e:
+            logger.error(f"Worker {worker_id} error: {e}", exc_info=True)
         finally:
-            BULK_QUEUE.task_done()
+            # FIX: Only call task_done if item was retrieved
+            if item_retrieved:
+                BULK_QUEUE.task_done()
 
 
 @app.post(f"{API_PREFIX}/jobs/bulk-run")

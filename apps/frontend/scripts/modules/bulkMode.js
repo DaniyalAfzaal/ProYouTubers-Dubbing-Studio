@@ -10,6 +10,14 @@ export const bulkMode = {
         this.setupModeToggle();
         this.setupFileHandlers();
         this.setupSubmitHandler();
+
+        // FIX: Add cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (this.pollInterval) {
+                clearInterval(this.pollInterval);
+                this.pollInterval = null;
+            }
+        });
     },
 
     setupModeToggle() {
@@ -170,6 +178,9 @@ export const bulkMode = {
             clearInterval(this.pollInterval);
         }
 
+        // FIX: Reset error count BEFORE starting interval
+        this.pollErrorCount = 0;
+
         this.pollInterval = setInterval(async () => {
             try {
                 const resp = await fetch(`/api/jobs/bulk-status/${batchId}`);
@@ -178,6 +189,10 @@ export const bulkMode = {
                 }
 
                 const data = await resp.json();
+
+                // FIX: Reset error count on success
+                this.pollErrorCount = 0;
+
                 this.updateProgress(data);
 
                 // Stop when complete
@@ -196,20 +211,18 @@ export const bulkMode = {
                 }
             }
         }, 2000); // Poll every 2 seconds
-
-        // FIX: Reset error count on successful start
-        this.pollErrorCount = 0;
     },
 
     updateProgress(data) {
-        // Update stats
-        document.getElementById('bulk-completed').textContent = data.completed;
-        document.getElementById('bulk-processing').textContent = data.processing;
-        document.getElementById('bulk-queued').textContent = data.queued;
-        document.getElementById('bulk-failed').textContent = data.failed;
+        // FIX: Add fallback values for undefined data
+        document.getElementById('bulk-completed').textContent = data.completed || 0;
+        document.getElementById('bulk-processing').textContent = data.processing || 0;
+        document.getElementById('bulk-queued').textContent = data.queued || 0;
+        document.getElementById('bulk-failed').textContent = data.failed || 0;
 
-        // Update progress bar
-        const progress = ((data.completed + data.failed) / data.total) * 100;
+        // FIX: Prevent divide by zero
+        const progress = (data.total && data.total > 0) ?
+            ((data.completed + data.failed) / data.total) * 100 : 0;
         document.getElementById('bulk-progress-bar').style.width = `${progress}%`;
 
         // Update video list
@@ -236,7 +249,8 @@ export const bulkMode = {
             }
 
             if (video.result && video.result.video_url) {
-                content += `<a href="${video.result.video_url}" class="download-link" download>⬇️ Download</a>`;
+                // FIX: Escape URL to prevent XSS
+                content += `<a href="${this.escapeHtml(video.result.video_url)}" class="download-link" download>⬇️ Download</a>`;
             }
 
             item.innerHTML = content;

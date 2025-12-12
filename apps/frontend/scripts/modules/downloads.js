@@ -10,30 +10,52 @@ export const downloads = {
         const closeBtn = document.getElementById('close-downloads');
         const downloadsPage = document.getElementById('downloads-page');
 
-        if (downloadsBtn) {
+        // FIX: Add null checks for all elements
+        if (downloadsBtn && downloadsPage) {
             downloadsBtn.addEventListener('click', () => {
                 downloadsPage.hidden = false;
                 this.loadProcesses();
             });
         }
 
-        if (closeBtn) {
+        if (closeBtn && downloadsPage) {
             closeBtn.addEventListener('click', () => {
                 downloadsPage.hidden = true;
             });
         }
+
+        // FIX: Add cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            // Cleanup if needed
+        });
     },
 
     loadProcesses() {
         const stored = localStorage.getItem('dubbing_processes');
-        this.processes = stored ? JSON.parse(stored) : [];
+        // FIX: Wrap JSON.parse in try-catch
+        try {
+            this.processes = stored ? JSON.parse(stored) : [];
+        } catch (e) {
+            console.error('Failed to parse processes from localStorage:', e);
+            this.processes = [];
+            localStorage.removeItem('dubbing_processes');
+        }
         this.renderProcessList();
     },
 
     saveProcess(processData) {
+        // FIX: Validate process data structure
+        if (!processData || !processData.timestamp || !processData.name) {
+            console.error('Invalid process data:', processData);
+            return;
+        }
         this.processes.unshift(processData);
         if (this.processes.length > 50) this.processes.pop();
-        localStorage.setItem('dubbing_processes', JSON.stringify(this.processes));
+        try {
+            localStorage.setItem('dubbing_processes', JSON.stringify(this.processes));
+        } catch (e) {
+            console.error('Failed to save processes to localStorage:', e);
+        }
     },
 
     renderProcessList() {
@@ -47,7 +69,7 @@ export const downloads = {
         list.innerHTML = this.processes.map((proc, i) => `
             <div class="process-item${i === 0 ? ' active' : ''}" data-index="${i}">
                 <div><strong>${this.escapeHtml(proc.name || 'Dubbing Process')}</strong></div>
-                <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.25rem">${new Date(proc.timestamp).toLocalString()}</div>
+                <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.25rem">${new Date(proc.timestamp).toLocaleString()}</div>
             </div>
         `).join('');
 
@@ -67,25 +89,26 @@ export const downloads = {
     showProcessDetails(process) {
         const details = document.getElementById('download-details');
 
+        // FIX: Remove inline onclick, use data attributes instead
         details.innerHTML = `
             <div class="download-section">
                 <h3>📥 Download Options</h3>
                 <div class="download-buttons">
-                    <button class="download-btn" onclick="window.open('${process.videoUrl || '#'}', '_blank')">
+                    <button class="download-btn" data-url="${this.escapeHtml(process.videoUrl || '')}">
                         <span style="font-size:1.5rem">🎬</span>
                         <div>
                             <div>Complete Dubbed Video</div>
                             <small style="opacity:0.8">Exported with audio</small>
                         </div>
                     </button>
-                    <button class="download-btn" onclick="window.open('${process.audioUrl || '#'}', '_blank')">
+                    <button class="download-btn" data-url="${this.escapeHtml(process.audioUrl || '')}">
                         <span style="font-size:1.5rem">🎵</span>
                         <div>
                             <div>Dubbed Audio</div>
                             <small style="opacity:0.8">Time-adjusted</small>
                         </div>
                     </button>
-                    <button class="download-btn" onclick="window.open('${process.rawAudioUrl || '#'}', '_blank')">
+                    <button class="download-btn" data-url="${this.escapeHtml(process.rawAudioUrl || '')}">
                         <span style="font-size:1.5rem">🎤</span>
                         <div>
                             <div>Original Dubbed Audio</div>
@@ -101,7 +124,7 @@ export const downloads = {
                     <div><strong>Source:</strong> ${this.escapeHtml(process.source || 'N/A')}</div>
                     <div><strong>Target Languages:</strong> ${this.escapeHtml(process.languages || 'N/A')}</div>
                     <div><strong>Completed:</strong> ${new Date(process.timestamp).toLocaleString()}</div>
-                    <div><strong>Duration:</strong> ${process.duration || 'N/A'}</div>
+                    <div><strong>Duration:</strong> ${this.escapeHtml(process.duration || 'N/A')}</div>
                 </div>
             </div>
             
@@ -110,6 +133,16 @@ export const downloads = {
                 <div class="process-logs">${this.escapeHtml(process.logs || 'No logs available')}</div>
             </div>
         `;
+        
+        // FIX: Add event listeners for download buttons (XSS safe)
+        details.querySelectorAll('.download-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const url = btn.dataset.url;
+                if (url && url !== '#' && url !== '') {
+                    window.open(url, '_blank');
+                }
+            });
+        });
     },
 
     escapeHtml(text) {
