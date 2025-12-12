@@ -162,6 +162,22 @@ def _synthesize(req: TTSRequest) -> TTSResponse:
         time.perf_counter() - run_start,
         len(out.segments),
     )
+    
+    # Clear model from GPU memory to free ~4GB VRAM for concurrent pipelines
+    # Only keep model loaded if explicitly requested (for batch processing)
+    keep_loaded = req.extra.get("keep_model_loaded", False) if req.extra else False
+    if not keep_loaded:
+        global _MODEL_CACHE
+        with _MODEL_LOCK:
+            if _MODEL_CACHE:
+                logger.info("🧹 Clearing TTS model from GPU memory...")
+                _MODEL_CACHE.clear()
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        logger.info("✅ Released ~4GB VRAM for other pipelines")
+    
     return out
 
 

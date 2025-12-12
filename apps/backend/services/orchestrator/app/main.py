@@ -135,6 +135,12 @@ TTS_REVIEW_SESSIONS: Dict[tuple[str, str], TTSReviewSession] = {}
 TTS_REVIEW_QUEUES: Dict[str, deque[tuple[str, str]]] = {}
 TRANSCRIPTION_SEGMENT_TOLERANCE = general_cfg.get("transcript_tolerance", 0.25)
 
+# GPU Resource Management: Limit concurrent pipelines to prevent OOM
+# L4 GPU (24GB VRAM) can safely handle 2 concurrent pipelines max
+# Each pipeline uses ~11GB VRAM (WhisperX 4GB + TTS 4GB + Separator 3GB)
+_PIPELINE_SEMAPHORE = asyncio.Semaphore(2)
+logger.info("Pipeline concurrency limited to 2 simultaneous executions (GPU memory protection)")
+
 OUTS.mkdir(parents=True, exist_ok=True)
 app.mount("/outs", StaticFiles(directory=str(OUTS)), name="outs")
 
