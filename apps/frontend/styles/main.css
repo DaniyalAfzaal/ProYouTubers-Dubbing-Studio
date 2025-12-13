@@ -108,12 +108,15 @@ section {
     box-shadow: var(--shadow-lg);
 }
 
-@media (min-width: 1600px) {
+/* FIX: Changed from 1600px to 1280px for normal widescreen monitors */
+@media (min-width: 1280px) {
     main {
         grid-template-columns: 1fr 2fr;
+        padding: 20px 20px;
     }
 
     section {
+        margin: 0;
         overflow-y: auto;
         max-height: calc(100vh - 140px);
     }
