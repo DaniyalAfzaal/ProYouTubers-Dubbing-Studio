@@ -1293,6 +1293,15 @@ async def pipeline_options() -> JSONResponse:
 async def download_video(video_id: str, filename: str):
     """Download a completed video from persistent storage or local directory"""
     from fastapi.responses import FileResponse
+    import re
+    
+    # FIX Bug #28: Path traversal protection
+    if not re.match(r'^[a-zA-Z0-9_-]+$', video_id):
+        raise HTTPException(400, "Invalid video_id format")
+    if not re.match(r'^[a-zA-Z0-9_\.-]+$', filename):
+        raise HTTPException(400, "Invalid filename format")
+    if '..' in video_id or '..' in filename:
+        raise HTTPException(400, "Path traversal detected")
     
     # Try persistent storage first (Modal volume)
     persistent_root = Path("/persistent-outputs")
@@ -1307,7 +1316,11 @@ async def download_video(video_id: str, filename: str):
     
     # Fallback to local outs directory
     local_path = BASE / "outs" / video_id / filename
-    if local_path.exists():
+    try:
+        local_path.resolve().relative_to((BASE / "outs").resolve())
+    except ValueError:
+        raise HTTPException(403, "Access denied")
+    if local_path.exists() and local_path.is_file():
         return FileResponse(
             path=str(local_path),
             filename=filename,
@@ -1320,18 +1333,34 @@ async def download_video(video_id: str, filename: str):
 @app.get(f"{API_PREFIX}/outputs/{{video_id}}")
 async def list_outputs(video_id: str):
     """List all output files for a video ID"""
+    import re
+    
+    # Input validation
+    if not re.match(r'^[a-zA-Z0-9_-]+$', video_id):
+        raise HTTPException(400, "Invalid video_id format")
+    if '..' in video_id:
+        raise HTTPException(400, "Path traversal detected")
+    
     # Try persistent storage first
     persistent_root = Path("/persistent-outputs")
     video_dir = None
     
     if persistent_root.exists():
         test_dir = persistent_root / video_id
-        if test_dir.exists():
-            video_dir = test_dir
+        try:
+            test_dir.resolve().relative_to(persistent_root.resolve())
+            if test_dir.exists() and test_dir.is_dir():
+                video_dir = test_dir
+        except ValueError:
+            pass  # Path outside allowed directory
     
     # Fallback to local
     if not video_dir:
         video_dir = BASE / "outs" / video_id
+        try:
+            video_dir.resolve().relative_to((BASE / "outs").resolve())
+        except ValueError:
+            raise HTTPException(403, "Access denied")
         if not video_dir.exists():
             raise HTTPException(404, f"No outputs found for: {video_id}")
     
