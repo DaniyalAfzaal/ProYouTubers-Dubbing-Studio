@@ -877,8 +877,9 @@ async def run_asr_step(
     diarize: bool = True,
 ) -> Tuple[ASRResponse, Optional[ASRResponse]]:
     asr_req = ASRRequest(
-        audio_url=str(raw_audio_path),
-        language_hint=source_lang if source_lang else None,
+        audio_path=str(raw_audio_path),
+        model_key=asr_model,
+        language_hint=source_lang,
         min_speakers=min_speakers,
         max_speakers=max_speakers,
     )
