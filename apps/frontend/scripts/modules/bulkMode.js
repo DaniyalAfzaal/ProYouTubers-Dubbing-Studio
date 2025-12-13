@@ -79,28 +79,18 @@ export const bulkMode = {
     setupSubmitHandler() {
         const form = document.getElementById('dub-form');
 
-        // Store reference to any existing listeners via event capture
-        let originalHandler = null;
-        const listeners = [];
-
-        // Capture current onsubmit if exists
-        if (form.onsubmit) {
-            originalHandler = form.onsubmit;
-        }
-
+        // Listen for form submission, only intercept bulk mode
         form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
             const mode = document.querySelector('[name="processing-mode"]:checked')?.value;
 
+            // Only handle bulk mode here
             if (mode === 'bulk') {
+                e.preventDefault();
+                e.stopPropagation();
                 await this.submitBulkDubbing();
-            } else if (originalHandler) {
-                // Call original handler if it exists
-                originalHandler.call(form, e);
             }
-        }, { capture: true });
+            // For single mode: do nothing, let the original form.onsubmit handler in app.js work
+        });
     },
 
     async submitBulkDubbing() {
