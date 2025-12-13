@@ -22,6 +22,8 @@ def build_translator(req: "TranslateRequest", logger: logging.Logger):
     translators = {
         "google": GoogleTranslator,
         "deepl": DeeplTranslator,
+        "deepltranslator": DeeplTranslator,  # ADD: Support 'DeeplTranslator' name from UI
+        "deep_translator": DeeplTranslator,  # ADD: Support 'deep_translator' name
         "microsoft": MicrosoftTranslator,
         "chatgpt": ChatGptTranslator,
         "pons": PonsTranslator,
@@ -46,7 +48,7 @@ def build_translator(req: "TranslateRequest", logger: logging.Logger):
     kwargs.setdefault("target", getattr(req, "target_lang", None))
 
     # Optionally source API keys from env if not provided
-    if provider == "deepl":
+    if provider in ["deepl", "deepltranslator", "deep_translator"]:
         kwargs.setdefault("api_key", os.getenv("DEEPL_API_KEY"))
     elif provider == "microsoft":
         kwargs.setdefault("api_key", os.getenv("AZURE_TRANSLATOR_KEY"))
