@@ -2104,9 +2104,10 @@ async def dub(
             if languages_to_process:
                 for lang in languages_to_process:
                     with step_timer.time(f"translation[{lang}]"):
-                        tr_result = await run_translation_step(
+                        tr_result = await translate_segments(
                             client,
                             translation_models_by_lang.get(lang, general_cfg.get("default_models", {}).get("tr", "facebook_m2m100")),
+                            tr_provider,  # ADD: provider
                             segments_for_translation,
                             source_lang,
                             lang,
@@ -2177,9 +2178,10 @@ async def dub(
                 per_language_models[lang] = {"translation": translation_model_key, "tts": tts_model_key}
 
                 with step_timer.time(f"translation{lang_suffix}"):
-                    tr_result = await run_translation_step(
+                    tr_result = await translate_segments(
                         client,
                         translation_model_key,
+                        tr_provider,  # ADD: provider
                         segments_for_translation,
                         source_lang,
                         lang,
