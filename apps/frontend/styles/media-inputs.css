@@ -1,4 +1,6 @@
-/* Enhanced Media Input Styling */
+/* Enhanced Media Input Styling - Consistent across both modes */
+
+/* Label with icon styling */
 .label-with-icon {
     display: flex;
     align-items: center;
@@ -9,19 +11,22 @@
     margin-bottom: 8px;
 }
 
+/* Helper text styling */
 .hint-text {
     display: block;
     font-size: 0.85rem;
     color: var(--text-muted);
     margin-top: 6px;
     font-style: italic;
+    opacity: 0.9;
 }
 
+/* OR divider between options */
 .divider-text {
     display: flex;
     align-items: center;
     text-align: center;
-    margin: 20px 0;
+    margin: 24px 0;
     position: relative;
 }
 
@@ -29,80 +34,136 @@
 .divider-text::after {
     content: '';
     flex: 1;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color);
+    opacity: 0.3;
 }
 
 .divider-text span {
-    padding: 0 16px;
-    font-weight: 600;
-    font-size: 0.85rem;
+    padding: 0 20px;
+    font-weight: 700;
+    font-size: 0.8rem;
     color: var(--text-muted);
     background: var(--bg-card);
+    letter-spacing: 0.1em;
 }
 
-/* File input styling */
+/* Enhanced input focus states - RED ACCENT GLOW */
+input[type="file"]:focus,
+input[type="text"]:focus,
+input[type="url"]:focus,
+select:focus,
+textarea:focus,
+.tag-input:focus-within {
+    outline: none;
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 4px var(--accent-glow) !important;
+}
+
+/* File input enhanced styling */
 input[type="file"] {
-    padding: 12px;
+    padding: 16px;
     border: 2px dashed var(--border-color);
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--bg-secondary);
     cursor: pointer;
-    transition: var(--transition);
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
 }
 
 input[type="file"]:hover {
     border-color: var(--accent-primary);
     background: var(--bg-tertiary);
+    transform: translateY(-2px);
 }
 
-input[type="file"]:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-/* Textarea styling */
+/* Textarea enhanced styling */
 textarea {
     width: 100%;
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    padding: 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
     background: var(--bg-secondary);
     color: var(--text-primary);
     font-family: 'Inter', monospace;
     font-size: 0.9rem;
     line-height: 1.6;
     resize: vertical;
-    transition: var(--transition);
+    transition: all 0.3s ease;
 }
 
 textarea:hover {
     border-color: var(--accent-primary);
-}
-
-textarea:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--bg-tertiary);
 }
 
 textarea::placeholder {
     color: var(--text-muted);
-    opacity: 0.7;
+    opacity: 0.6;
+    font-size: 0.85rem;
 }
 
-/* File count badge */
-.file-count {
+/* File/URL count badges */
+.file-count,
+.url-count {
     display: inline-block;
     margin-left: 12px;
     padding: 4px 12px;
-    background: var(--accent-primary);
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     color: white;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
 }
 
-.file-count:empty {
+.file-count:empty,
+.url-count:empty {
     display: none;
+}
+
+/* Unified tag input styling for both modes */
+#target-lang-field,
+#bulk-target-lang-field {
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    min-height: 48px;
+    transition: all 0.3s ease;
+}
+
+#target-lang-field:hover,
+#bulk-target-lang-field:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-tertiary);
+}
+
+#target-lang-field:focus-within,
+#bulk-target-lang-field:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 4px var(--accent-glow);
+}
+
+/* Tag input field */
+#target-lang-input,
+#bulk-target-lang-input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 4px 8px !important;
+}
+
+/* Smooth transitions for all interactive elements */
+input,
+select,
+textarea,
+.tag-input {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fieldset legend icons */
+fieldset legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }

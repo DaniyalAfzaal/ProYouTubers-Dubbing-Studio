@@ -74,21 +74,29 @@
 
                 <!-- Single Video Mode Inputs -->
                 <fieldset id="single-mode-inputs">
-                    <legend>Media</legend>
+                    <legend>🎬 Media Input</legend>
+
                     <label>
-                        Source Video / Audio
+                        <span class="label-with-icon">📁 Upload Local File</span>
                         <input type="file" name="file" accept="video/*,audio/*">
+                        <small class="hint-text">Supports: MP4, MOV, AVI, MP3, WAV, etc.</small>
                     </label>
+
+                    <div class="divider-text">
+                        <span>OR</span>
+                    </div>
+
                     <label>
-                        Or Video Link
-                        <input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=...">
+                        <span class="label-with-icon">🔗 Paste Video URL</span>
+                        <input type="url" name="video_url"
+                            placeholder="https://www.youtube.com/watch?v=... or Instagram, TikTok, etc.">
+                        <small class="hint-text">Supports: YouTube, Instagram, TikTok, Twitter, Facebook, and
+                            more</small>
                         <div class="download-progress" id="download-progress" hidden>
                             <div class="download-bar" id="download-bar"></div>
                             <span class="download-label" id="download-label">Downloading…</span>
                         </div>
                     </label>
-                    <p class="hint">Provide either a local file or a public video URL (YouTube, Instagram, TikTok, ...).
-                    </p>
                     <div class="flex">
                         <label>
                             Task
@@ -113,22 +121,29 @@
                     </div>
                 </fieldset><!-- Bulk Mode Inputs -->
                 <fieldset id="bulk-mode-inputs" hidden>
-                    <legend>Bulk Media Input</legend>
+                    <legend>📹 Bulk Media Input</legend>
 
                     <label>
-                        Upload Multiple Files
+                        <span class="label-with-icon">📁 Upload Multiple Files</span>
                         <input type="file" id="bulk-files" multiple accept="video/*,audio/*">
                         <span class="file-count" id="bulk-file-count"></span>
+                        <small class="hint-text">Select up to 100 video/audio files at once</small>
                     </label>
+
+                    <div class="divider-text">
+                        <span>OR</span>
+                    </div>
 
                     <label>
-                        Or Paste URLs (one per line)
-                        <textarea id="bulk-urls" rows="10"
-                            placeholder="https://youtube.com/watch?v=...&#10;https://example.com/video2.mp4&#10;https://example.com/video3.mp4"></textarea>
+                        <span class="label-with-icon">🔗 Paste Multiple URLs</span>
+                        <textarea id="bulk-urls" rows="8"
+                            placeholder="https://www.youtube.com/watch?v=...&#10;https://www.instagram.com/p/...&#10;https://www.tiktok.com/@...&#10;&#10;(One URL per line, up to 100 URLs)"></textarea>
                         <span class="url-count" id="bulk-url-count"></span>
+                        <small class="hint-text">One URL per line • Supports: YouTube, Instagram, TikTok, Twitter,
+                            Facebook</small>
                     </label>
 
-                    <p class="hint">Maximum 100 videos per batch. Options below apply to all videos.</p>
+                    <p class="hint">📋 Maximum 100 videos per batch. Options below apply to all videos.</p>
 
                     <!-- Bulk Configuration Options -->
                     <div class="flex">
