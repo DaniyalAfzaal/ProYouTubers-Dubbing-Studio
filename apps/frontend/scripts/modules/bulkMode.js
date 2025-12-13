@@ -14,6 +14,7 @@ export const bulkMode = {
     init() {
         this.setupModeToggle();
         this.setupFileHandlers();
+        this.setupBulkTargetLangs();  // FIX Bug #15: Add bulk target lang setup
         this.setupSubmitHandler();
 
         // FIX: Add cleanup on page unload
@@ -109,6 +110,54 @@ export const bulkMode = {
         }
     },
 
+    // FIX Bug #15: Setup bulk target language tag input
+    setupBulkTargetLangs() {
+        const input = document.getElementById('bulk-target-lang-input');
+        const tagsContainer = document.getElementById('bulk-target-lang-tags');
+
+        if (!input || !tagsContainer) {
+            console.warn('BulkMode: Bulk target lang elements not found');
+            return;
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const value = input.value.trim().toLowerCase();
+
+                if (value) {
+                    // Check if already added
+                    const existing = Array.from(tagsContainer.querySelectorAll('.tag'))
+                        .find(tag => tag.dataset.code === value);
+
+                    if (!existing) {
+                        this.addBulkTargetLangTag(value);
+                    }
+                    input.value = '';
+                }
+            }
+        });
+    },
+
+    addBulkTargetLangTag(code) {
+        const tagsContainer = document.getElementById('bulk-target-lang-tags');
+        if (!tagsContainer) return;
+
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.dataset.code = code;
+        tag.innerHTML = `
+            <span>${code}</span>
+            <button type="button" class="tag-remove" aria-label="Remove ${code}">×</button>
+        `;
+
+        tag.querySelector('.tag-remove').addEventListener('click', () => {
+            tag.remove();
+        });
+
+        tagsContainer.appendChild(tag);
+    },
+
     setupSubmitHandler() {
         const form = document.getElementById('dub-form');
 
@@ -164,18 +213,25 @@ export const bulkMode = {
         const dubForm = document.getElementById('dub-form');
         const singleFormData = new FormData(dubForm);
 
-        // Get target languages from the tag input
-        const targetLangs = Array.from(document.querySelectorAll('#target-lang-tags .tag'))
+        // FIX Bug #18: Get target languages from BULK tag input
+        const targetLangs = Array.from(document.querySelectorAll('#bulk-target-lang-tags .tag'))
             .map(tag => tag.dataset.code)
             .join(',');
 
         if (!targetLangs) {
-            toast.error('Please add at least one target language');
+            toast.error('Please add at least one target language in bulk mode');
             modeRadios.forEach(r => r.disabled = false);
             return;
         }
 
         formData.append('target_langs', targetLangs);
+
+        // Get bulk-specific task and source language
+        const bulkTask = document.getElementById('bulk-task')?.value || 'dub';
+        const bulkSourceLang = document.getElementById('bulk-source-lang')?.value || 'auto';
+
+        formData.append('target_work', bulkTask);
+        formData.append('source_lang', bulkSourceLang);
 
         // Copy all form fields to bulk FormData
         for (let [key, value] of singleFormData.entries()) {
