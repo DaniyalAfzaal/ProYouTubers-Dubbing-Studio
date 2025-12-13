@@ -28,6 +28,12 @@ const handlers = {
     const subtitleStyle = document.getElementById("subtitle-style");
     const languageList = document.getElementById("language-list");
 
+    // FIX Bug #11: Add null checks for all elements
+    if (!asrSelect || !trSelect || !ttsSelect || !sepSelect) {
+      console.error('Required form elements not found');
+      return;
+    }
+
     state.asrModels = opts.asr_models || [];
     state.translationModels = opts.translation_models || [];
     state.ttsModels = opts.tts_models || [];
@@ -44,6 +50,7 @@ const handlers = {
     models.refresh(trSelect, state.translationModels, initTargetCode);
     models.refresh(ttsSelect, state.ttsModels, initTargetCode);
 
+    // Safe to use sepSelect now
     opts.audio_separation_models.forEach(group => {
       const optGroup = document.createElement("optgroup");
       optGroup.label = group.architecture;

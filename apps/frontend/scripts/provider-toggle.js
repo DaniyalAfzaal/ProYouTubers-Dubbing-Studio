@@ -1,9 +1,16 @@
 // Translation provider dropdown logic
-document.addEventListener('DOMContentLoaded', () => {
+// FIX Bug #9: Avoid DOMContentLoaded race condition
+(function initProviderToggle() {
     const trModelSelect = document.getElementById('tr-model');
     const trProviderLabel = document.getElementById('tr-provider-label');
 
-    if (!trModelSelect || !trProviderLabel) return;
+    // If elements not found yet, wait for DOM
+    if (!trModelSelect || !trProviderLabel) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initProviderToggle);
+        }
+        return;
+    }
 
     // Function to toggle provider dropdown visibility
     const toggleProviderDropdown = () => {
@@ -22,4 +29,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Toggle when model changes
     trModelSelect.addEventListener('change', toggleProviderDropdown);
-});
+})();

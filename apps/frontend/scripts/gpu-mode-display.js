@@ -1,13 +1,17 @@
 /* Simple inline script to show GPU mode on bulk start */
-document.addEventListener('DOMContentLoaded', () => {
+// FIX Bug #10: Avoid DOMContentLoaded race condition
+(function initGPUModeDisplay() {
     const originalFetch = window.fetch;
+
     window.fetch = async (...args) => {
         const response = await originalFetch(...args);
 
         // Intercept bulk-run response
         if (args[0] && args[0].includes('/api/jobs/bulk-run')) {
-            const clone = response.clone();
-            clone.json().then(data => {
+            try {
+                const clone = response.clone();
+                const data = await clone.json();
+
                 if (data.gpus) {
                     const isModal = data.gpus > 2;
                     const badge = document.createElement('div');
@@ -24,9 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         container.insertBefore(badge, container.firstChild);
                     }
                 }
-            });
+            } catch (err) {
+                // Silently fail if response isn't JSON or element not found
+                console.warn('GPU mode display failed:', err);
+            }
         }
 
         return response;
     };
-});
+})();
