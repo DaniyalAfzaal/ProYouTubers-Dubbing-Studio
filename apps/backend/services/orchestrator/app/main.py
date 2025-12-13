@@ -2602,27 +2602,25 @@ async def bulk_worker(worker_id: int):
                     video = video_data['video']
                     options = video_data['options']
                     
-                    # Build request similar to single-mode
-                    req = DubbingRequest(
-                        target_languages=[
-                            lang.strip() for lang in options['target_langs'].split(',')
-                        ],
-                        task='dub',
-                        source_language=None,  # auto-detect
-                    )
-                    
-                    # Get media path
-                    if video['type'] == 'url':
-                        media_path = await resolve_media_path(video['url'])
-                    else:
-                        media_path = Path(video['path'])
-                    
-                    # Run dubbing pipeline
+                    # Build request similar to single-mode - call run_dubbing directly
                     result = await run_dubbing(
-                        req=req,
-                        media_path=media_path,
-                        uploaded_file_digest=None,
+                        video_url=video['url'] if video['type'] == 'url' else str(Path(video['path'])),
+                        target_work=options['task'],
+                        target_langs=[lang.strip() for lang in options['target_langs'].split(',')],
+                        source_lang=options.get('source_lang') or None,
+                        translation_strategy="default",
+                        dubbing_strategy="default",
+                        sophisticated_dub_timing=True,
+                        subtitle_style=None,
+                        audio_sep=True,
+                        perform_vad_trimming=True,
+                        persist_intermediate=True,
+                        sep_model="melband_roformer_big_beta5e.ckpt",
+                        asr_model="whisperx",
+                        tr_model=options.get('tr_provider', 'deep_translator'),
+                        tts_model="chatterbox",
                         run_id=None,
+                        involve_mode=False,
                     )
                     
                     async with job.lock:
