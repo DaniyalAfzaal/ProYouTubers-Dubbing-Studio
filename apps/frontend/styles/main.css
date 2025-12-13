@@ -1840,4 +1840,112 @@ header {
         max-width: 2000px;
         margin: 0 auto;
     }
+}/* ============================================
+   DOWNLOADS BUTTON - Elegant & Eye-Catching
+   ============================================ */
+.downloads-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border: 2px solid var(--accent-primary);
+    border-radius: 50px;
+    background: linear-gradient(135deg,
+            rgba(220, 38, 38, 0.1),
+            rgba(239, 68, 68, 0.05));
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+    overflow: hidden;
+}
+
+.downloads-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent);
+    transition: left 0.5s;
+}
+
+.downloads-btn:hover::before {
+    left: 100%;
+}
+
+.downloads-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4),
+        0 0 40px rgba(220, 38, 38, 0.3);
+    border-color: var(--accent-secondary);
+    background: linear-gradient(135deg,
+            var(--accent-primary),
+            var(--accent-secondary));
+    color: white;
+}
+
+.downloads-btn:active {
+    transform: translateY(0) scale(1.02);
+}
+
+.downloads-icon {
+    font-size: 1.3rem;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+
+    0%,
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.2) rotate(5deg);
+        opacity: 0.8;
+    }
+}
+
+.downloads-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 800;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.6);
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.6);
+    }
+
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 4px 16px rgba(220, 38, 38, 0.8);
+    }
 }
