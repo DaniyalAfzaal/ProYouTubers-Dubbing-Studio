@@ -2325,6 +2325,24 @@ class BulkJob:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 BULK_JOBS: Dict[str, BulkJob] = {}
+
+# ============================================================================
+# PHASE 2: MODAL INTEGRATION FOR 10-GPU PARALLELIZATION
+# ============================================================================
+
+try:
+    import modal
+    # Get Modal function reference
+    modal_app = modal.Cls.lookup("proyoutubers-bulk-dubbing", "App")
+    process_single_video_modal = modal_app.process_single_video
+    logger.info("✅ Modal bulk processor connected - 10-GPU parallelization enabled")
+    MODAL_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"⚠️ Modal not available: {e}. Falling back to 2-worker queue")
+    MODAL_AVAILABLE = False
+    process_single_video_modal = None
+
+# Fallback queue system (if Modal not available)
 BULK_QUEUE: Optional[asyncio.Queue] = None
 BULK_WORKERS_STARTED = False
 _BULK_WORKERS_LOCK = asyncio.Lock()  # FIX: Add lock for startup
@@ -2421,7 +2439,67 @@ async def cleanup_old_bulk_jobs():
             logger.error(f"Error in cleanup task: {e}", exc_info=True)
 
 
-@app.post(f"{API_PREFIX}/jobs/bulk-run")
+async def _process_batch_with_modal(
+    batch_id: str,
+    video_inputs: list,
+    options: dict
+):
+    """
+    Process batch using Modal Functions - true 10-GPU parallelization.
+    Each video gets its own L4 GPU.
+    """
+    job = BULK_JOBS.get(batch_id)
+    if not job:
+        return
+    
+    try:
+        logger.info(f"🚀 Calling Modal.map() for batch {batch_id}...")
+        
+        # Update job status
+        async with job.lock:
+            for video in job.videos:
+                video['status'] = 'processing'
+        
+        # Call Modal.map() for parallel processing
+        # This will spin up up to 10 L4 GPUs simultaneously
+        results = list(process_single_video_modal.map(
+            video_inputs,
+            [options] * len(video_inputs),
+            [batch_id] * len(video_inputs),
+            list(range(len(video_inputs)))
+        ))
+        
+        # Update job with results
+        async with job.lock:
+            for result in results:
+                index = result["index"]
+                if index < len(job.videos):
+                    if result["status"] == "success":
+                        job.completed += 1
+                        job.videos[index]['status'] = 'completed'
+                        job.videos[index]['result'] = result.get('result', {})
+                        job.videos[index]['output_dir'] = result.get('output_dir')
+                    else:
+                        job.failed += 1
+                        job.videos[index]['status'] = 'failed'
+                        job.videos[index]['error'] = result.get('error', 'Unknown error')
+        
+        duration = time.time() - job.timestamp
+        logger.info(
+            f"✅ Batch {batch_id} completed in {duration:.1f}s: "
+            f"{job.completed} success, {job.failed} failed"
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Batch {batch_id} failed: {e}", exc_info=True)
+        async with job.lock:
+            for video in job.videos:
+                if video['status'] == 'processing':
+                    video['status'] = 'failed'
+                    video['error'] = str(e)
+            job.failed = job.total
+
+
 async def bulk_run(
     files: List[UploadFile] = File(None),
     urls: str = Form(None),
@@ -2430,7 +2508,6 @@ async def bulk_run(
     if not files and not urls:
         raise HTTPException(400, "No videos provided")
     
-    await start_bulk_workers()
     videos = []
     
     if files:
@@ -2450,10 +2527,44 @@ async def bulk_run(
     job = BulkJob(batch_id=batch_id, total=len(videos), videos=[{'name': v['name'], 'status': 'queued'} for v in videos])
     BULK_JOBS[batch_id] = job
     
-    for i, video in enumerate(videos):
-        await BULK_QUEUE.put({'batch_id': batch_id, 'index': i, 'data': {'video': video, 'options': {'target_langs': target_langs}}})
-    
-    return {"batch_id": batch_id, "total": len(videos), "status": "queued"}
+    # PHASE 2: Use Modal if available, otherwise fallback to queue
+    if MODAL_AVAILABLE and process_single_video_modal:
+        logger.info(f"📡 Starting Modal batch {batch_id} with {len(videos)} videos (10-GPU parallelization)")
+        
+        # Prepare video inputs for Modal
+        video_inputs = []
+        for video in videos:
+            if video['type'] == 'url':
+                video_inputs.append({"url": video['url']})
+            else:
+                # Read file data for Modal
+                with open(video['path'], 'rb') as f:
+                    video_inputs.append({"file_data": f.read(), "filename": video['name']})
+        
+        # Prepare options
+        options = {
+            "target_languages": [lang.strip() for lang in target_langs.split(',')],
+            "source_language": "auto",
+            "asr_model": "whisperx",
+            "translation_model": "deep_translator",
+            "tts_model": "chatterbox",
+            "translation_strategy": "direct",
+            "dubbing_strategy": "keep_bg_music",
+        }
+        
+        # Process in background using Modal.map()
+        asyncio.create_task(_process_batch_with_modal(batch_id, video_inputs, options))
+        
+        return {"batch_id": batch_id, "total": len(videos), "status": "processing_modal", "gpus": 10}
+    else:
+        # Fallback: Queue-based processing
+        logger.info(f"📋 Starting queue batch {batch_id} with {len(videos)} videos (2-worker queue)")
+        await start_bulk_workers()
+        
+        for i, video in enumerate(videos):
+            await BULK_QUEUE.put({'batch_id': batch_id, 'index': i, 'data': {'video': video, 'options': {'target_langs': target_langs}}})
+        
+        return {"batch_id": batch_id, "total": len(videos), "status": "queued", "gpus": 2}
 
 
 @app.get(f"{API_PREFIX}/jobs/bulk-status/{{batch_id}}")
