@@ -2590,5 +2590,13 @@ async def bulk_status(batch_id: str):
             "failed": job.failed,
             "processing": job.processing,
             "queued": job.total - job.completed - job.failed - job.processing,
-            "videos": job.videos.copy()
+            # FIX: Deep copy to prevent frontend mutation of backend state
+            "videos": [
+                {
+                    "name": v.get("name"),
+                    "status": v.get("status"),
+                    "error": v.get("error")
+                }
+                for v in job.videos
+            ]
         }

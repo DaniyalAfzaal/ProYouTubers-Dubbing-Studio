@@ -259,12 +259,19 @@ export const bulkMode = {
         document.getElementById('bulk-progress-bar').style.width = `${progress}%`;
 
         // Update video list
-        this.updateVideoList(data.videos);
+        // FIX: Add null safety
+        this.updateVideoList(data.videos || []);
     },
 
     updateVideoList(videos) {
         const list = document.getElementById('bulk-video-list');
         if (!list) return;
+
+        // FIX: Validate videos is an array
+        if (!videos || !Array.isArray(videos)) {
+            console.warn('updateVideoList: videos is not an array', videos);
+            return;
+        }
 
         // Optimized: Update only changed items instead of full rebuild
         videos.forEach((video, index) => {
