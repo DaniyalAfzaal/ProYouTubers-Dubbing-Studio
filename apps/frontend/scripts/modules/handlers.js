@@ -354,6 +354,18 @@ const handlers = {
     }
 
     const formData = new FormData(el.form);
+    const files1 = el.fileInput?.files;
+    const url1 = el.videoLink?.value?.trim();
+
+    // FIX: Only validate single mode fields when in single mode
+    const mode = document.querySelector('[name="processing-mode"]:checked')?.value;
+    const isSingleMode = mode !== 'bulk';
+
+    if (isSingleMode && (!files1 || files1.length === 0) && !url1) {
+      ui.log("⚠️ Provide a media file or a video link.");
+      ui.setStatus("Error", "error");
+      return;
+    }
     linkValue = el.videoLink.value.trim();
     const cachedToken = el.reuseToken?.value.trim() || "";
 
