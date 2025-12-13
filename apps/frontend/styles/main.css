@@ -1510,18 +1510,15 @@ header {
         max-width: 1500px;
     }
 
-    /* Multi-column form layouts */
+    /* Keep 2-column form layouts for better readability */
     fieldset .flex {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 1.5rem;
     }
 
-    /* Side-by-side previews */
-    .previews {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 2rem;
-    }
+    /* DO NOT make previews side-by-side - keep them stacked */
+    /* Previews should remain single column for proper layout */
 
     /* Wider form inputs */
     fieldset {
@@ -1567,9 +1564,9 @@ header {
         font-size: 2rem;
     }
 
-    /* Four-column form layouts */
+    /* Keep 2-column for forms - 4 column was too much */
     fieldset .flex {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(2, 1fr);
     }
 
     /* Downloads manager wider */
