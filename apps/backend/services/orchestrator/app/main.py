@@ -2482,6 +2482,10 @@ async def dub(
         except Exception as exc:
             logger.error(f"Failed to persist outputs: {exc}", exc_info=True)
 
+        # FIX: Add workspace_id to final result for download tracking
+        final_result["workspace_id"] = workspace.workspace_id
+        final_result["source_path"] = str(media_path)
+
         return final_result
 
     except asyncio.CancelledError:
@@ -2588,15 +2592,40 @@ async def bulk_worker(worker_id: int):
             
             async with _PIPELINE_SEMAPHORE:
                 try:
-                    # Simplified processing - skips translation/TTS for MVP
+                    # FIX: Actually process the video instead of placeholder
                     logger.info(f"Worker {worker_id} processing video {video_index}")
-                    await asyncio.sleep(2)  # Placeholder
+                    
+                    video = video_data['video']
+                    options = video_data['options']
+                    
+                    # Build request similar to single-mode
+                    req = DubbingRequest(
+                        target_languages=[
+                            lang.strip() for lang in options['target_langs'].split(',')
+                        ],
+                        task='dub',
+                        source_language=None,  # auto-detect
+                    )
+                    
+                    # Get media path
+                    if video['type'] == 'url':
+                        media_path = await resolve_media_path(video['url'])
+                    else:
+                        media_path = Path(video['path'])
+                    
+                    # Run dubbing pipeline
+                    result = await run_dubbing(
+                        req=req,
+                        media_path=media_path,
+                        uploaded_file_digest=None,
+                        run_id=None,
+                    )
                     
                     async with job.lock:
                         job.processing -= 1
                         job.completed += 1
                         job.videos[video_index]['status'] = 'completed'
-                        job.videos[video_index]['result'] = {'video_url': '/placeholder'}
+                        job.videos[video_index]['result'] = result
                 except Exception as e:
                     logger.error(f"Worker {worker_id} failed: {e}", exc_info=True)
                     async with job.lock:
