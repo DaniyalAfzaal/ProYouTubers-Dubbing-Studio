@@ -2508,6 +2508,13 @@ async def bulk_run(
     files: List[UploadFile] = File(None),
     urls: str = Form(None),
     target_langs: str = Form(...),
+    # FIX Bug #5: Add model customization options
+    source_lang: str = Form("auto"),
+    asr_model: str = Form("whisperx"),
+    tr_model: str = Form("deep_translator"),
+    tts_model: str = Form("chatterbox"),
+    translation_strategy: str = Form("direct"),
+    dubbing_strategy: str = Form("keep_bg_music"),
 ):
     if not files and not urls:
         raise HTTPException(400, "No videos provided")
@@ -2545,15 +2552,15 @@ async def bulk_run(
                 with open(video['path'], 'rb') as f:
                     video_inputs.append({"file_data": f.read(), "filename": video['name']})
         
-        # Prepare options
+        # Prepare options - FIX Bug #5: Use user-provided options instead of hardcoded
         options = {
             "target_languages": [lang.strip() for lang in target_langs.split(',')],
-            "source_language": "auto",
-            "asr_model": "whisperx",
-            "translation_model": "deep_translator",
-            "tts_model": "chatterbox",
-            "translation_strategy": "direct",
-            "dubbing_strategy": "keep_bg_music",
+            "source_language": source_lang,
+            "asr_model": asr_model,
+            "translation_model": tr_model,
+            "tts_model": tts_model,
+            "translation_strategy": translation_strategy,
+            "dubbing_strategy": dubbing_strategy,
         }
         
         # Process in background using Modal.map()

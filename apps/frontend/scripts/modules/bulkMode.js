@@ -146,11 +146,14 @@ export const bulkMode = {
         const modeRadios = document.querySelectorAll('[name="processing-mode"]');
         modeRadios.forEach(r => r.disabled = true);
 
-        // Add all other form options (same as single mode)
+        // FIX Bug #5: Add all form options (including model selections)
         const dubForm = document.getElementById('dub-form');
         const singleFormData = new FormData(dubForm);
+
+        // Copy all form fields to bulk FormData
         for (let [key, value] of singleFormData.entries()) {
-            if (key !== 'file' && key !== 'video_url' && key !== 'reuse_media_token') {
+            // Skip single-mode specific fields
+            if (key !== 'file' && key !== 'video_url' && key !== 'reuse_media_token' && key !== 'processing-mode') {
                 formData.append(key, value);
             }
         }
@@ -255,16 +258,32 @@ export const bulkMode = {
     },
 
     updateProgress(data) {
+        // FIX Bug #6: Add DOM element safety helper
+        const setTextIfExists = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = value;
+            } else {
+                console.warn(`Element not found: ${id}`);
+            }
+        };
+
         // FIX: Add fallback values for undefined data
-        document.getElementById('bulk-completed').textContent = data.completed || 0;
-        document.getElementById('bulk-processing').textContent = data.processing || 0;
-        document.getElementById('bulk-queued').textContent = data.queued || 0;
-        document.getElementById('bulk-failed').textContent = data.failed || 0;
+        setTextIfExists('bulk-completed', data.completed || 0);
+        setTextIfExists('bulk-processing', data.processing || 0);
+        setTextIfExists('bulk-queued', data.queued || 0);
+        setTextIfExists('bulk-failed', data.failed || 0);
 
         // FIX: Prevent divide by zero
         const progress = (data.total && data.total > 0) ?
             ((data.completed + data.failed) / data.total) * 100 : 0;
-        document.getElementById('bulk-progress-bar').style.width = `${progress}%`;
+
+        const progressBar = document.getElementById('bulk-progress-bar');
+        if (progressBar) {
+            progressBar.style.width = `${progress}%`;
+        } else {
+            console.warn('Element not found: bulk-progress-bar');
+        }
 
         // Update video list
         // FIX: Add null safety
