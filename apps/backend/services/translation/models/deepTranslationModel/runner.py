@@ -69,7 +69,14 @@ def build_translator(req: TranslateRequest, logger: logging.Logger) -> Any:
 
     # Optionally source API keys from env if not provided
     if provider in ["deepl", "deepltranslator", "deep_translator"]:
-        kwargs.setdefault("api_key", os.getenv("DEEPL_API_KEY"))
+        api_key = os.getenv("DEEPL_API_KEY")
+        if api_key:
+            kwargs.setdefault("api_key", api_key)
+        else:
+            logger.warning("⚠️ DeepL selected but DEEPL_API_KEY not set! Falling back to MyMemory (free, lower quality)")
+            # Fall back to MyMemory for free translation
+            TranslatorCls = MyMemoryTranslator
+            logger.info(f"Using fallback provider={TranslatorCls.__name__}")
     elif provider == "microsoft":
         kwargs.setdefault("api_key", os.getenv("AZURE_TRANSLATOR_KEY"))
         region = os.getenv("AZURE_TRANSLATOR_REGION")
