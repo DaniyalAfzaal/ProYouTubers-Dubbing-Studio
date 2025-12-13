@@ -2461,13 +2461,16 @@ async def _process_batch_with_modal(
                 video['status'] = 'processing'
         
         # Call Modal.map() for parallel processing
+        # FIX: Run in background thread to avoid blocking event loop
         # This will spin up up to 10 L4 GPUs simultaneously
-        results = list(process_single_video_modal.map(
-            video_inputs,
-            [options] * len(video_inputs),
-            [batch_id] * len(video_inputs),
-            list(range(len(video_inputs)))
-        ))
+        results = await asyncio.to_thread(
+            lambda: list(process_single_video_modal.map(
+                video_inputs,
+                [options] * len(video_inputs),
+                [batch_id] * len(video_inputs),
+                list(range(len(video_inputs)))
+            ))
+        )
         
         # Update job with results
         async with job.lock:
@@ -2500,6 +2503,7 @@ async def _process_batch_with_modal(
             job.failed = job.total
 
 
+@app.post(f"{API_PREFIX}/jobs/bulk-run")
 async def bulk_run(
     files: List[UploadFile] = File(None),
     urls: str = Form(None),
