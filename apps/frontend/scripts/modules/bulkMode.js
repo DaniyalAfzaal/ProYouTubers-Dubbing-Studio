@@ -43,26 +43,40 @@ export const bulkMode = {
             return;
         }
 
+        // FIX: Set initial state - single mode visible, bulk hidden
+        singleInputs.style.display = 'block';
+        bulkInputs.style.display = 'none';
+        bulkInputs.hidden = true;
+
         radios.forEach(radio => {
             radio.addEventListener('change', () => {
                 console.log('BulkMode: Radio changed to', radio.value);
 
                 // Disable mode switching if currently processing
-                if (submitBtn && submitBtn.disabled) {
-                    console.log('BulkMode: Blocked - submit button is disabled');
+                if (this.currentBatchId && this.pollInterval) {
+                    console.warn('BulkMode: Cannot switch modes while processing');
+                    // Revert radio selection
+                    radios.forEach(r => r.checked = (r.value !== radio.value));
                     return;
                 }
 
+                // FIX: Toggle visibility based on selected mode
                 if (radio.value === 'bulk') {
-                    console.log('BulkMode: Switching to BULK mode');
+                    // Bulk mode selected
+                    singleInputs.style.display = 'none';
                     singleInputs.hidden = true;
+                    bulkInputs.style.display = 'block';
                     bulkInputs.hidden = false;
-                    if (submitBtn) submitBtn.textContent = '🚀 Start Bulk Dubbing';
+                    submitBtn.textContent = '🚀 Start Bulk Dubbing';
+                    console.log('BulkMode: Switched to BULK mode');
                 } else {
-                    console.log('BulkMode: Switching to SINGLE mode');
+                    // Single mode selected
+                    singleInputs.style.display = 'block';
                     singleInputs.hidden = false;
+                    bulkInputs.style.display = 'none';
                     bulkInputs.hidden = true;
-                    if (submitBtn) submitBtn.textContent = 'Run dubbing pipeline';
+                    submitBtn.textContent = '🚀 Start Dubbing';
+                    console.log('BulkMode: Switched to SINGLE mode');
                 }
             });
         });
