@@ -44,6 +44,12 @@ def build_translator(req: TranslateRequest, logger: logging.Logger) -> Any:
         "qcri": QcriTranslator,
     }
     
+    # FIX: Extract provider from request
+    extra_0 = req.extra or {}
+    provider = extra_0.get("model_name", "google").lower()
+
+    # FIX: Get translator class
+    TranslatorCls = translators.get(provider, GoogleTranslator)
     if TranslatorCls is GoogleTranslator and provider not in translators:
         logger.warning("Unknown translator provider '%s'. Falling back to Google Translator.", provider)
     logger.info("Using provider=%s for translation.", TranslatorCls.__name__)
