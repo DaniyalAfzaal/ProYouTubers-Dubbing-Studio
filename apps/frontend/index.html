@@ -103,7 +103,7 @@
                                 placeholder="auto-detect (leave blank)">
                         </label>
                         <label>
-            Target Languages
+                            Target Languages
                             <div class="tag-input" id="target-lang-field">
                                 <div class="tag-input__tags" id="target-lang-tags"></div>
                                 <input type="text" id="target-lang-input" list="language-list"
@@ -112,46 +112,47 @@
                         </label>
                     </div>
                 </fieldset><!-- Bulk Mode Inputs -->
-<fieldset id="bulk-mode-inputs" hidden>
-    <legend>Bulk Media Input</legend>
+                <fieldset id="bulk-mode-inputs" hidden>
+                    <legend>Bulk Media Input</legend>
 
-    <label>
-        Upload Multiple Files
-        <input type="file" id="bulk-files" multiple accept="video/*,audio/*">
-        <span class="file-count" id="bulk-file-count"></span>
-    </label>
+                    <label>
+                        Upload Multiple Files
+                        <input type="file" id="bulk-files" multiple accept="video/*,audio/*">
+                        <span class="file-count" id="bulk-file-count"></span>
+                    </label>
 
-    <label>
-        Or Paste URLs (one per line)
-        <textarea id="bulk-urls" rows="10"
-            placeholder="https://youtube.com/watch?v=...&#10;https://example.com/video2.mp4&#10;https://example.com/video3.mp4"></textarea>
-        <span class="url-count" id="bulk-url-count"></span>
-    </label>
+                    <label>
+                        Or Paste URLs (one per line)
+                        <textarea id="bulk-urls" rows="10"
+                            placeholder="https://youtube.com/watch?v=...&#10;https://example.com/video2.mp4&#10;https://example.com/video3.mp4"></textarea>
+                        <span class="url-count" id="bulk-url-count"></span>
+                    </label>
 
-    <p class="hint">Maximum 100 videos per batch. Options below apply to all videos.</p>
+                    <p class="hint">Maximum 100 videos per batch. Options below apply to all videos.</p>
 
-    <!-- Bulk Configuration Options -->
-    <div class="flex">
-        <label>
-            Task
-            <select id="bulk-task">
-                <option value="dub">Dubbing</option>
-                <option value="sub">Subtitling</option>
-            </select>
-        </label>
-        <label>
-            Source Language
-            <input type="text" id="bulk-source-lang" list="language-list" placeholder="auto-detect (leave blank)">
-        </label>
-        <label>
-            Target Languages
-            <div class="tag-input" id="bulk-target-lang-field">
-                <div class="tag-input__tags" id="bulk-target-lang-tags"></div>
-                <input type="text" id="bulk-target-lang-input" list="language-list"
-                    placeholder="Type code and press Enter">
-            </div>
-        </label>
-</fieldset>
+                    <!-- Bulk Configuration Options -->
+                    <div class="flex">
+                        <label>
+                            Task
+                            <select id="bulk-task">
+                                <option value="dub">Dubbing</option>
+                                <option value="sub">Subtitling</option>
+                            </select>
+                        </label>
+                        <label>
+                            Source Language
+                            <input type="text" id="bulk-source-lang" list="language-list"
+                                placeholder="auto-detect (leave blank)">
+                        </label>
+                        <label>
+                            Target Languages
+                            <div class="tag-input" id="bulk-target-lang-field">
+                                <div class="tag-input__tags" id="bulk-target-lang-tags"></div>
+                                <input type="text" id="bulk-target-lang-input" list="language-list"
+                                    placeholder="Type code and press Enter">
+                            </div>
+                        </label>
+                </fieldset>
 
                 <fieldset>
                     <legend>Models</legend>
@@ -404,4 +405,3 @@
 </body>
 
 </html>
-
