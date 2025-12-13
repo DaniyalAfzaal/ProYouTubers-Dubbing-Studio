@@ -1109,6 +1109,78 @@ fieldset {
     color: white;
 }
 
+/* GPU Mode Badge */
+.gpu-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.gpu-mode-badge.modal-mode {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+    border-color: #3b82f6;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    animation: modal-pulse 2s ease-in-out infinite;
+}
+
+.gpu-mode-badge.queue-mode {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+}
+
+@keyframes modal-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    }
+}
+
+.gpu-mode-badge .gpu-icon {
+    font-size: 1.2rem;
+}
+
+.gpu-mode-badge .gpu-label {
+    color: var(--text-primary);
+}
+
+.gpu-mode-badge .gpu-count {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.gpu-mode-badge .gpu-speed {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: white;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.progress-title {
+    margin: 0;
+    color: var(--text-primary);
+}
+
 .video-item .error {
     margin-top: 0.75rem;
     padding: 0.75rem;
