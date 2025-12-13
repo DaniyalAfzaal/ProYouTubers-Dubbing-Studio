@@ -217,8 +217,8 @@ const handlers = {
                 source: state.sourceDescriptor,
                 languages: langs.join(', '),
                 videoUrl: `/api/download/${workspaceId}/dubbed_video_${firstLang}.mp4`,
-                audioUrl: `/api/download/${workspaceId}/dubbed_audio_${firstLang}.wav`,
-                rawAudioUrl: `/api/download/${workspaceId}/dubbed_audio_${firstLang}_raw.wav`,
+                audioUrl: `/api/download/${workspaceId}/final_dubbed_audio_${firstLang}.wav`,  // FIX: Correct file name
+                rawAudioUrl: `/api/download/${workspaceId}/dubbed_speech_track_${firstLang}.wav`,  // FIX: Correct file name
                 duration: langData?.duration || 'Unknown',
                 logs: `Pipeline completed successfully for ${langs.join(', ')}`
               });
