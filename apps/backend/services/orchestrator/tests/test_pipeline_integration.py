@@ -84,7 +84,7 @@ async def test_dub_pipeline_minimal(monkeypatch, tmp_path):
 
     monkeypatch.setattr(orchestrator_main, "maybe_run_audio_separation", fake_maybe_run_audio_separation)
     monkeypatch.setattr(orchestrator_main, "run_asr_step", fake_run_asr_step)
-    monkeypatch.setattr(orchestrator_main, "run_translation_step", fake_run_translation_step)
+    monkeypatch.setattr(orchestrator_main, "translate_segments", fake_run_translation_step)
     monkeypatch.setattr(orchestrator_main, "synthesize_tts", fake_synthesize_tts)
     monkeypatch.setattr(orchestrator_main, "trim_tts_segments", fake_trim_tts_segments)
     monkeypatch.setattr(orchestrator_main, "concatenate_segments", fake_concatenate_segments)
@@ -203,7 +203,7 @@ async def test_dub_pipeline_multiple_languages(monkeypatch, tmp_path):
 
     monkeypatch.setattr(orchestrator_main, "maybe_run_audio_separation", fake_maybe_run_audio_separation)
     monkeypatch.setattr(orchestrator_main, "run_asr_step", fake_run_asr_step)
-    monkeypatch.setattr(orchestrator_main, "run_translation_step", fake_run_translation_step)
+    monkeypatch.setattr(orchestrator_main, "translate_segments", fake_run_translation_step)
     monkeypatch.setattr(orchestrator_main, "synthesize_tts", fake_synthesize_tts)
     monkeypatch.setattr(orchestrator_main, "trim_tts_segments", fake_trim_tts_segments)
     monkeypatch.setattr(orchestrator_main, "concatenate_segments", fake_concatenate_segments)
