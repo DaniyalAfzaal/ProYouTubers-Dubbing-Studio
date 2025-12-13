@@ -72,6 +72,13 @@ def build_translator(req: TranslateRequest, logger: logging.Logger) -> Any:
         api_key = os.getenv("DEEPL_API_KEY")
         if api_key:
             kwargs.setdefault("api_key", api_key)
+            # FIX: DeepL Free API requires use_free_api=True for keys ending with :fx
+            if api_key.endswith(":fx"):
+                kwargs.setdefault("use_free_api", True)
+                logger.info("🆓 Using DeepL FREE API (key ends with :fx)")
+            else:
+                kwargs.setdefault("use_free_api", False)
+                logger.info("💎 Using DeepL PRO API")
         else:
             logger.warning("⚠️ DeepL selected but DEEPL_API_KEY not set! Falling back to MyMemory (free, lower quality)")
             # Fall back to MyMemory for free translation
