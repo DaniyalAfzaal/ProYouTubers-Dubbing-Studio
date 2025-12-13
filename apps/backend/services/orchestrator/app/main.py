@@ -2803,7 +2803,22 @@ async def bulk_run(
         await start_bulk_workers()
         
         for i, video in enumerate(videos):
-            await BULK_QUEUE.put({'batch_id': batch_id, 'index': i, 'data': {'video': video, 'options': {'target_langs': target_langs}}})
+            await BULK_QUEUE.put({
+                'batch_id': batch_id,
+                'index': i,
+                'data': {
+                    'video': video,
+                    'options': {
+                        'target_langs': target_langs,
+                        'source_lang': source_lang if source_lang != 'auto' else None,
+                        'task': 'dub',
+                        'asr_model': asr_model,
+                        'tr_model': tr_model,
+                        'tr_provider': tr_provider,
+                        'tts_model': tts_model,
+                    }
+                }
+            })
         
         return {"batch_id": batch_id, "total": len(videos), "status": "queued", "gpus": 2}
 
