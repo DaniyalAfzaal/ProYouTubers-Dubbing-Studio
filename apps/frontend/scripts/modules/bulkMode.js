@@ -164,10 +164,28 @@ export const bulkMode = {
         const dubForm = document.getElementById('dub-form');
         const singleFormData = new FormData(dubForm);
 
+        // Get target languages from the tag input
+        const targetLangs = Array.from(document.querySelectorAll('#target-lang-tags .tag'))
+            .map(tag => tag.dataset.code)
+            .join(',');
+
+        if (!targetLangs) {
+            toast.error('Please add at least one target language');
+            modeRadios.forEach(r => r.disabled = false);
+            return;
+        }
+
+        formData.append('target_langs', targetLangs);
+
         // Copy all form fields to bulk FormData
         for (let [key, value] of singleFormData.entries()) {
-            // Skip single-mode specific fields
-            if (key !== 'file' && key !== 'video_url' && key !== 'reuse_media_token' && key !== 'processing-mode') {
+            // Skip fields that shouldn't be in bulk submission
+            if (key !== 'file' &&
+                key !== 'video_url' &&
+                key !== 'reuse_media_token' &&
+                key !== 'processing-mode' &&
+                key !== 'target_lang' &&  // Skip the tag input field itself
+                !key.startsWith('target_')) {  // Skip other target_ fields
                 formData.append(key, value);
             }
         }
