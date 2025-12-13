@@ -2603,7 +2603,7 @@ async def bulk_worker(worker_id: int):
                     options = video_data['options']
                     
                     # Build request similar to single-mode - call run_dubbing directly
-                    result = await run_dubbing(
+                    result = await dub(
                         video_url=video['url'] if video['type'] == 'url' else str(Path(video['path'])),
                         target_work=options['task'],
                         target_langs=[lang.strip() for lang in options['target_langs'].split(',')],
