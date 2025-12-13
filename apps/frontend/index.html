@@ -24,23 +24,23 @@
         })();
     </script>
     <header>
-        <div class="brand">
-            <h1 class="brand-logo">
-                <span class="brand-text">PROYOUTUBERS</span>
-                <span class="tagline">DUBBING STUDIO</span>
-            </h1>
-            <p class="tagline">Professional AI Dubbing at Scale</p>
-        </div>
-        <div class="header-actions">
-            <button id="downloads-btn" class="downloads-btn" aria-label="Open Downloads Manager">
-                <span class="downloads-icon">✨</span>
-                <span class="btn-label">Downloads</span>
-                <span class="downloads-badge" id="downloads-count" hidden>0</span>
-            </button>
-            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
-                <span>🌙</span>
-                <span class="theme-label">DARK</span>
-            </button>
+        <div class="header-container">
+            <div class="brand-typography">
+                <h1 class="brand-name">ProYouTubers</h1>
+                <h2 class="brand-subtitle">Dubbing Studio</h2>
+                <p class="brand-tagline">Professional AI Dubbing at Scale</p>
+            </div>
+            <nav class="header-nav">
+                <button type="button" class="downloads-btn" id="downloads-btn" aria-label="Open downloads manager">
+                    <span class="downloads-icon" aria-hidden="true">✨</span>
+                    <span class="btn-label">Downloads</span>
+                    <span class="downloads-badge" id="downloads-count" hidden>0</span>
+                </button>
+                <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+                    <span aria-hidden="true">🌙</span>
+                    <span class="theme-label">Dark</span>
+                </button>
+            </nav>
         </div>
     </header>
 
