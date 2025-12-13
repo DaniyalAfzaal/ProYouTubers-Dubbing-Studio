@@ -885,7 +885,7 @@ async def run_asr_step(
         language_hint = match.group(1) if match else source_lang.strip()
     
     asr_req = ASRRequest(
-        audio_path=str(raw_audio_path),
+        audio_url=str(raw_audio_path),  # FIX: Use audio_url, not audio_path
         model_key=asr_model,
         language_hint=language_hint,  # Use extracted code
         min_speakers=min_speakers,
