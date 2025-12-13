@@ -81,6 +81,7 @@ export const downloads = {
 
     renderProcessList() {
         const list = document.getElementById('process-list');
+        if (!list) return;  // Safety check
 
         if (this.processes.length === 0) {
             list.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No completed processes yet</p></div>';
@@ -109,6 +110,7 @@ export const downloads = {
 
     showProcessDetails(process) {
         const details = document.getElementById('download-details');
+        if (!details) return;  // Safety check
 
         // FIX: Remove inline onclick, use data attributes instead
         details.innerHTML = `

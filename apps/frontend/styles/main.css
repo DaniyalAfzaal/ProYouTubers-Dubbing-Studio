@@ -820,56 +820,61 @@ fieldset {
     animation: progressPulse 1.5s ease-in-out infinite;
 }
 
-/* ============================================     ProYouTubers Dubbing Studio - Premium Design     Red/White/Black Color Scheme     ============================================ */    /* ... existing styles ... */    /* ============================================     BULK DUBBING MODE STYLES     ============================================ */    /* Mode Selector */  .mode-selector  {
-          display:  flex;
-          gap:  1rem;
-          margin-bottom:  2rem;
-          padding:  1.5rem;
-          background:  var(--bg-card);
-          border:  2px solid var(--accent-primary);
-          border-radius:  12px;
-          box-shadow:  var(--shadow-md);
-      
+/* ============================================     ProYouTubers Dubbing Studio - Premium Design     Red/White/Black Color Scheme     ============================================ */
+/* ... existing styles ... */
+/* ============================================     BULK DUBBING MODE STYLES     ============================================ */
+/* Mode Selector */
+.mode-selector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border: 2px solid var(--accent-primary);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+
 }
 
-    .mode-option  {
-          flex:  1;
-          display:  flex;
-          align-items:  center;
-          justify-content:  center;
-          gap:  0.75rem;
-          padding:  1.25rem;
-          background:  var(--bg-secondary);
-          border:  2px solid transparent;
-          border-radius:  10px;
-          cursor:  pointer;
-          transition:  var(--transition);
-          font-weight:  600;
-          font-size:  1.05rem;
-      
+.mode-option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    background: var(--bg-secondary);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 600;
+    font-size: 1.05rem;
+
 }
 
-    .mode-option:hover  {
-          transform:  translateY(-2px);
-          box-shadow:  var(--shadow-sm);
-      
+.mode-option:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+
 }
 
-    .mode-option:has(input:checked)  {
-          border-color:  var(--accent-primary);
-          background:  linear-gradient(135deg,  var(--accent-primary),  var(--accent-secondary));
-          color:  white;
-          box-shadow:  var(--shadow-glow);
-      
+.mode-option:has(input:checked) {
+    border-color: var(--accent-primary);
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    color: white;
+    box-shadow: var(--shadow-glow);
+
 }
 
-    .mode-option input  {
-          cursor:  pointer;
-          width:  20px;
-          height:  20px;
-          accent-color:  white;
-      
+.mode-option input {
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    accent-color: white;
+
 }
+
 /* ============================================
    MODE SELECTOR  
    ============================================ */
@@ -1012,9 +1017,12 @@ fieldset {
 }
 
 @keyframes processing-pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
     }
+
     50% {
         box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
     }
@@ -1024,6 +1032,7 @@ fieldset {
     0% {
         transform: translateX(-100%);
     }
+
     100% {
         transform: translateX(100%);
     }
@@ -1079,9 +1088,12 @@ fieldset {
 }
 
 @keyframes status-glow {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
     }
+
     50% {
         box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
     }
@@ -1182,7 +1194,8 @@ header {
     align-items: center;
 }
 
-.nav-btn, .theme-toggle {
+.nav-btn,
+.theme-toggle {
     padding: 0.75rem 1.5rem;
     background: var(--bg-secondary);
     border: 2px solid var(--border-color);
@@ -1197,7 +1210,8 @@ header {
     font-weight: 600;
 }
 
-.nav-btn:hover, .theme-toggle:hover {
+.nav-btn:hover,
+.theme-toggle:hover {
     background: var(--accent-primary);
     border-color: var(--accent-primary);
     color: white;
@@ -1229,6 +1243,7 @@ header {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -1323,7 +1338,7 @@ header {
     color: white;
 }
 
-. downloads-main {
+.downloads-main {
     background: var(--bg-primary);
     padding: 2rem;
     overflow-y: auto;
@@ -1478,5 +1493,121 @@ header {
 
     .mode-option {
         min-width: 100%;
+    }
+}
+
+/* ============================================
+   LARGE SCREEN RESPONSIVE DESIGN
+   ============================================ */
+
+/* Large screens (1440px+) */
+@media (min-width: 1440px) {
+    section {
+        width: min(1400px, 94vw);
+    }
+
+    .header-container {
+        max-width: 1500px;
+    }
+
+    /* Multi-column form layouts */
+    fieldset .flex {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+    }
+
+    /* Side-by-side previews */
+    .previews {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+    }
+
+    /* Wider form inputs */
+    fieldset {
+        padding: 2rem;
+    }
+
+    /* Better spacing for bulk progress */
+    .bulk-progress-container {
+        padding: 2.5rem;
+    }
+
+    .overall-progress {
+        margin-bottom: 2.5rem;
+    }
+}
+
+/* Ultra-wide screens (1920px+) */
+@media (min-width: 1920px) {
+    section {
+        width: min(1600px, 90vw);
+    }
+
+    .header-container {
+        max-width: 1700px;
+    }
+
+    /* Even more spacious layouts */
+    main {
+        padding: 30px 0;
+        gap: 48px;
+    }
+
+    /* Larger typography for readability */
+    body {
+        font-size: 18px;
+    }
+
+    .brand-name {
+        font-size: 4rem;
+    }
+
+    .brand-subtitle {
+        font-size: 2rem;
+    }
+
+    /* Four-column form layouts */
+    fieldset .flex {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* Downloads manager wider */
+    .downloads-content {
+        grid-template-columns: 350px 1fr;
+    }
+
+    .downloads-sidebar {
+        padding: 2rem;
+    }
+
+    .downloads-main {
+        padding: 3rem;
+    }
+
+    .download-details {
+        max-width: 1200px;
+    }
+}
+
+/* Ultra-ultra-wide (2560px+) */
+@media (min-width: 2560px) {
+    section {
+        width: min(2000px, 85vw);
+    }
+
+    .header-container {
+        max-width: 2200px;
+    }
+
+    /* Maximum comfortable reading width */
+    .download-details {
+        max-width: 1400px;
+    }
+
+    /* Prevent grotesque stretching */
+    form {
+        max-width: 2000px;
+        margin: 0 auto;
     }
 }
