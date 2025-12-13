@@ -1845,6 +1845,9 @@ async def dub(
 
     requested_tr_model = (tr_model or "").strip()
     requested_tts_model = (tts_model or "").strip()
+    
+    # FIX: Extract provider name from translation model for DeepL support
+    tr_provider = requested_tr_model if requested_tr_model else "google"
 
     asr_model = resolve_model_choice(asr_model, ASR_WORKERS, source_lang, fallback= general_cfg.get("default_models", {}).get("asr", "whisperx"))
 
