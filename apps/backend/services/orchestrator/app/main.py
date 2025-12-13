@@ -2512,6 +2512,7 @@ async def bulk_run(
     source_lang: str = Form("auto"),
     asr_model: str = Form("whisperx"),
     tr_model: str = Form("deep_translator"),
+    tr_provider: str = Form("google"),  # NEW: Translation provider
     tts_model: str = Form("chatterbox"),
     translation_strategy: str = Form("direct"),
     dubbing_strategy: str = Form("keep_bg_music"),
@@ -2558,6 +2559,7 @@ async def bulk_run(
             "source_language": source_lang,
             "asr_model": asr_model,
             "translation_model": tr_model,
+            "translation_provider": tr_provider,  # NEW: Pass provider selection
             "tts_model": tts_model,
             "translation_strategy": translation_strategy,
             "dubbing_strategy": dubbing_strategy,

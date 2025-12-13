@@ -147,6 +147,24 @@
                                 <option value="auto">Auto</option>
                             </select>
                         </label>
+                        <label id="tr-provider-label">
+                            Translation Provider
+                            <select name="tr_provider" id="tr-provider">
+                                <option value="google">Google Translate (Free)</option>
+                                <option value="deepl">DeepL (API Key Required)</option>
+                                <option value="microsoft">Microsoft Azure (API Key Required)</option>
+                                <option value="chatgpt">ChatGPT (API Key Required)</option>
+                                <option value="mymemory">MyMemory</option>
+                                <option value="yandex">Yandex (API Key Required)</option>
+                                <option value="papago">Papago (API Key Required)</option>
+                                <option value="pons">Pons</option>
+                                <option value="linguee">Linguee</option>
+                                <option value="qcri">QCRI</option>
+                            </select>
+                            <p class="hint" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                                Only applies to "deep_translator" model. Google is free, others may require API keys.
+                            </p>
+                        </label>
                         <label>
                             TTS Model
                             <select name="tts_model" id="tts-model">
@@ -361,6 +379,7 @@
     </main>
     <script type="module" src="scripts/app.js"></script>
     <script src="scripts/gpu-mode-display.js"></script>
+    <script src="scripts/provider-toggle.js"></script>
 </body>
 
 </html>
