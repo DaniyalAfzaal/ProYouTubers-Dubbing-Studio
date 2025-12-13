@@ -27,23 +27,23 @@ const handlers = {
     const dubbingStrategy = document.getElementById("dubbing-strategy");
     const subtitleStyle = document.getElementById("subtitle-style");
     const languageList = document.getElementById("language-list");
-    
+
     state.asrModels = opts.asr_models || [];
     state.translationModels = opts.translation_models || [];
     state.ttsModels = opts.tts_models || [];
-    
+
     const codes = new Set();
     [state.asrModels, state.translationModels, state.ttsModels].forEach(group => {
       group.forEach(model => (model.languages || []).forEach(l => codes.add(l)));
     });
-    
+
     const initSourceCode = lang.resolve(el.sourceLang?.value || "");
     const initTargetCode = targetLangs.getPrimary() || initSourceCode;
-    
+
     models.refresh(asrSelect, state.asrModels, initSourceCode);
     models.refresh(trSelect, state.translationModels, initTargetCode);
     models.refresh(ttsSelect, state.ttsModels, initTargetCode);
-    
+
     opts.audio_separation_models.forEach(group => {
       const optGroup = document.createElement("optgroup");
       optGroup.label = group.architecture;
@@ -55,28 +55,28 @@ const handlers = {
       });
       sepSelect.appendChild(optGroup);
     });
-    
+
     opts.translation_strategies.forEach(strategy => {
       translationStrategy.appendChild(new Option(strategy, strategy));
     });
-    
+
     opts.dubbing_strategies.forEach(strategy => {
       dubbingStrategy.appendChild(new Option(strategy, strategy));
     });
-    
+
     opts.subtitle_styles.forEach(style => {
       ["Desktop", "Mobile"].forEach(mode => {
         const value = mode === "Mobile" ? `${style}_mobile` : style;
         subtitleStyle.appendChild(new Option(`${style} (${mode})`, value));
       });
     });
-    
+
     const preferredOrder = ["en", "fr"];
     const languageEntries = Array.from(codes).map(code => ({
       code: code.toLowerCase(),
       display: lang.register(code)
     }));
-    
+
     languageEntries.sort((a, b) => {
       const idxA = preferredOrder.indexOf(a.code);
       const idxB = preferredOrder.indexOf(b.code);
@@ -85,15 +85,15 @@ const handlers = {
       if (idxB !== -1) return 1;
       return a.display.localeCompare(b.display);
     });
-    
+
     const fillLanguageOptions = (filter = "") => {
       const normalized = filter.trim().toLowerCase();
       const suggestions = normalized
         ? languageEntries.filter(e =>
-            e.display.toLowerCase().includes(normalized) || e.code.includes(normalized)
-          )
+          e.display.toLowerCase().includes(normalized) || e.code.includes(normalized)
+        )
         : languageEntries;
-      
+
       languageList.innerHTML = "";
       suggestions.forEach(e => {
         const opt = document.createElement("option");
@@ -102,14 +102,14 @@ const handlers = {
         languageList.appendChild(opt);
       });
     };
-    
+
     fillLanguageOptions();
     targetLangs.updateModels();
-    
+
     const updateLangSuggestions = inputEl => {
       if (inputEl) fillLanguageOptions(inputEl.value);
     };
-    
+
     if (el.sourceLang) {
       el.sourceLang.oninput = () => {
         updateLangSuggestions(el.sourceLang);
@@ -118,10 +118,10 @@ const handlers = {
         targetLangs.updateModels();
       };
     }
-    
+
     if (el.targetLangInput) {
       el.targetLangInput.oninput = () => updateLangSuggestions(el.targetLangInput);
-      
+
       el.targetLangInput.onkeydown = e => {
         if (["Enter", "Tab", ","].includes(e.key)) {
           const pending = el.targetLangInput.value.trim();
@@ -136,7 +136,7 @@ const handlers = {
           targetLangs.remove(last);
         }
       };
-      
+
       el.targetLangInput.onblur = () => {
         if (el.targetLangInput.value.trim()) {
           targetLangs.add(el.targetLangInput.value);
@@ -147,7 +147,7 @@ const handlers = {
 
   handleEvent(event) {
     if (!event?.type) return;
-    
+
     const eventHandlers = {
       run_id: () => {
         state.runId = event.run_id || "";
@@ -156,7 +156,7 @@ const handlers = {
           ui.log(`🆔 Run started (${state.runId})`);
         }
       },
-      
+
       step: () => {
         if (event.event === "start") {
           ui.log(`▶️ ${event.step}…`);
@@ -164,7 +164,7 @@ const handlers = {
           ui.log(`✅ ${event.step} (${event.duration.toFixed(2)}s)`);
         }
       },
-      
+
       cancelled: () => {
         ui.log("⏹ Run cancelled.");
         ui.setStatus("Cancelled", "error");
@@ -176,7 +176,7 @@ const handlers = {
         ui.hideInterrupt();
         state.runId = "";
       },
-      
+
       result: () => {
         ui.log("🎉 Pipeline completed.");
         ui.setStatus("Done", "success");
@@ -184,17 +184,38 @@ const handlers = {
         alignmentReview.hide();
         ttsReview.hide();
         results.render(event.result);
-        
+
         const tokenVal = event.result?.upload_token || "";
         token.set(tokenVal);
         state.sourceDescriptor = (event.result?.source_media || "").trim();
         if (tokenVal && el.fileInput) el.fileInput.value = "";
-        
+
         if (event.result?.source_video?.url) {
           ui.updateSourcePreview(event.result.source_video.url, "Source (workspace)");
         }
+
+        // Save to downloads manager
+        import('./downloads.js').then(({ downloads }) => {
+          const langs = Object.keys(event.result?.languages || {});
+          if (langs.length > 0) {
+            const firstLang = langs[0];
+            const langData = event.result.languages[firstLang];
+
+            downloads.saveProcess({
+              name: state.sourceDescriptor || 'Dubbing Process',
+              timestamp: Date.now(),
+              source: state.sourceDescriptor,
+              languages: langs.join(', '),
+              videoUrl: langData?.video_url,
+              audioUrl: langData?.dubbed_audio_url,
+              rawAudioUrl: langData?.raw_audio_url,
+              duration: langData?.duration || 'Unknown',
+              logs: `Pipeline completed successfully for ${langs.join(', ')}`
+            });
+          }
+        }).catch(err => console.error('Failed to save to downloads:', err));
       },
-      
+
       status: () => {
         if (event.event === "download_start") {
           ui.log(`⬇️ Downloading remote media: ${event.url || ""}`);
@@ -221,20 +242,20 @@ const handlers = {
           ui.log(`ℹ️ ${event.event || "status"}`);
         }
       },
-      
+
       transcription_review: () => {
         ui.log("✏️ Awaiting transcription review.");
         ui.setStatus("Awaiting review", "paused");
         ttsReview.hide();
         transcriptionReview.show(event);
       },
-      
+
       transcription_review_complete: () => {
         ui.log("✅ Transcription review submitted. Resuming pipeline.");
         ui.setStatus("Running", "running");
         transcriptionReview.hide();
       },
-      
+
       alignment_review: () => {
         ui.log("✏️ Awaiting alignment review.");
         ui.setStatus("Awaiting alignment review", "paused");
@@ -242,13 +263,13 @@ const handlers = {
         ttsReview.hide();
         alignmentReview.show(event);
       },
-      
+
       alignment_review_complete: () => {
         ui.log("✅ Alignment review submitted. Resuming pipeline.");
         ui.setStatus("Running", "running");
         alignmentReview.hide();
       },
-      
+
       tts_review: () => {
         ui.log("🎧 Awaiting TTS review.");
         ui.setStatus("Awaiting TTS review", "paused");
@@ -256,24 +277,24 @@ const handlers = {
         alignmentReview.hide();
         ttsReview.show(event);
       },
-      
+
       tts_review_complete: () => {
         ui.log("✅ TTS review submitted. Resuming pipeline.");
         ui.setStatus("Running", "running");
         ttsReview.hide();
       },
-      
+
       tts_review_regenerated: () => {
         if (event.segment) ttsReview.updateSegment(event.segment);
       },
-      
+
       source_preview: () => {
         if (event.preview?.url) {
           ui.updateSourcePreview(event.preview.url, "Source ready");
           ui.log("🎬 Source preview available.");
         }
       },
-      
+
       error: () => {
         ui.log(`❌ Error: ${event.message || "unknown failure"}`);
         ui.setStatus("Error", "error");
@@ -283,7 +304,7 @@ const handlers = {
         ui.hideInterrupt();
         state.runId = "";
       },
-      
+
       complete: () => {
         ui.log("🌊 Stream closed.");
         ui.hideInterrupt();
@@ -293,7 +314,7 @@ const handlers = {
         state.runId = "";
       }
     };
-    
+
     const handler = eventHandlers[event.type];
     if (handler) {
       handler();
@@ -308,33 +329,33 @@ const handlers = {
       ui.log("⚠️ Model registry not loaded.");
       return;
     }
-    
+
     transcriptionReview.hide();
     alignmentReview.hide();
-    
+
     let linkValue = el.videoLink.value.trim();
     let hasFile = el.fileInput.files?.length > 0;
-    
+
     if (linkValue && hasFile) {
       if (state.uploadToken) await token.release();
       el.fileInput.value = "";
       hasFile = false;
     }
-    
+
     if (el.targetLangInput?.value.trim()) {
       targetLangs.add(el.targetLangInput.value);
     }
-    
+
     const formData = new FormData(el.form);
     linkValue = el.videoLink.value.trim();
     const cachedToken = el.reuseToken?.value.trim() || "";
-    
+
     if (!hasFile && !linkValue && !cachedToken) {
       ui.log("⚠️ Provide a media file or a video link.");
       ui.setStatus("Error", "error");
       return;
     }
-    
+
     if (linkValue) {
       formData.set("video_url", linkValue);
       formData.delete("file");
@@ -344,16 +365,16 @@ const handlers = {
     } else {
       formData.delete("video_url");
     }
-    
+
     if (cachedToken && !hasFile && !linkValue) {
       formData.set("reuse_media_token", cachedToken);
     } else {
       formData.delete("reuse_media_token");
     }
-    
+
     const resolvedSource = lang.resolve(formData.get("source_lang"));
     formData.set("source_lang", resolvedSource);
-    
+
     formData.delete("target_langs");
     state.targetLangs.forEach(l => formData.append("target_langs", l));
     const primaryTarget = state.targetLangs[0] || "";
@@ -362,85 +383,85 @@ const handlers = {
     } else {
       formData.delete("target_lang");
     }
-    
+
     formData.set("audio_sep", document.getElementById("audio-sep").checked ? "true" : "false");
     formData.set("perform_vad_trimming", document.getElementById("vad-trim").checked ? "true" : "false");
     formData.set("sophisticated_dub_timing", document.getElementById("sophisticated-timing").checked ? "true" : "false");
     formData.set("persist_intermediate", document.getElementById("persist-intermediate").checked ? "true" : "false");
     formData.set("involve_mode", state.involveMode ? "true" : "false");
-    
+
     const normalizeSpeakerField = (field, label) => {
       const raw = formData.get(field);
       if (raw === null) return { value: null, ok: true };
-      
+
       const trimmed = String(raw).trim();
       if (!trimmed) {
         formData.delete(field);
         return { value: null, ok: true };
       }
-      
+
       const parsed = Number(trimmed);
       if (!Number.isInteger(parsed) || parsed < 1) {
         ui.log(`⚠️ ${label} must be a positive integer.`);
         ui.setStatus("Error", "error");
         return { value: null, ok: false };
       }
-      
+
       formData.set(field, String(parsed));
       return { value: parsed, ok: true };
     };
-    
+
     const minHint = normalizeSpeakerField("min_speakers", "Min speakers");
     if (!minHint.ok) return;
-    
+
     const maxHint = normalizeSpeakerField("max_speakers", "Max speakers");
     if (!maxHint.ok) return;
-    
+
     if (minHint.value !== null && maxHint.value !== null && minHint.value > maxHint.value) {
       ui.log("⚠️ Min speakers cannot exceed max speakers.");
       ui.setStatus("Error", "error");
       return;
     }
-    
+
     state.latestResult = null;
     if (el.resultPreview.select) {
       el.resultPreview.select.innerHTML = '<option value="">Processing…</option>';
       el.resultPreview.select.disabled = true;
     }
-    
+
     el.results.textContent = "Processing current run…";
     state.runId = "";
     ui.showInterrupt(true);
     ui.resetLog();
     el.log.textContent = "Starting pipeline…";
     ui.setStatus("Running", "running");
-    
+
     if (!hasFile && linkValue) {
       ui.updateSourcePreview(null, "Downloading media…");
     }
     ui.updateResultPreview(null, "Processing output…");
     el.runBtn.disabled = true;
-    
+
     try {
       const response = await fetch(API.routes.run, {
         method: "POST",
         body: formData
       });
-      
+
       if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-      
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let buffer = "";
-      
+
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        
+
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n\n");
         buffer = lines.pop() || "";
-        
+
         for (const block of lines) {
           const line = block.split("\n").find(l => l.startsWith("data:"));
           if (line) {
@@ -449,7 +470,7 @@ const handlers = {
           }
         }
       }
-      
+
       if (buffer.trim()) {
         const line = buffer.split("\n").find(l => l.startsWith("data:"));
         if (line) {

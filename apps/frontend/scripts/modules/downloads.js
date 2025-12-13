@@ -84,22 +84,72 @@ export const downloads = {
         if (!list) return;  // Safety check
 
         if (this.processes.length === 0) {
-            list.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No completed processes yet</p></div>';
+            list.innerHTML = `
+                <div class="empty-state-beautiful">
+                    <div class="empty-icon">📥</div>
+                    <h3>No Downloads Yet</h3>
+                    <p>Completed dubbing jobs will appear here</p>
+                    <div class="quick-tip">
+                        <span class="tip-icon">💡</span>
+                        <span>Try dubbing a video to get started!</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('download-details').innerHTML = `
+                <div class="empty-state-beautiful">
+                    <div class="empty-icon">🎬</div>
+                    <h3>Select a process to view details</h3>
+                    <p>Your download history will show here</p>
+                </div>
+            `;
             return;
         }
 
         list.innerHTML = this.processes.map((proc, i) => `
-            <div class="process-item${i === 0 ? ' active' : ''}" data-index="${i}">
-                <div><strong>${this.escapeHtml(proc.name || 'Dubbing Process')}</strong></div>
-                <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.25rem">${new Date(proc.timestamp).toLocaleString()}</div>
+            <div class="process-card${i === 0 ? ' active' : ''}" data-index="${i}">
+                <div class="process-header">
+                    <div class="process-status">
+                        <span class="status-icon">✓</span>
+                        <span class="status-text">Completed</span>
+                    </div>
+                    <button class="delete-btn" data-index="${i}" title="Delete" aria-label="Delete process">
+                        <span>🗑️</span>
+                    </button>
+                </div>
+                <div class="process-name">${this.escapeHtml(proc.name || 'Dubbing Process')}</div>
+                <div class="process-meta">
+                    <span class="meta-item">
+                        <span class="meta-icon">🌐</span>
+                        ${this.escapeHtml(proc.languages || 'N/A')}
+                    </span>
+                    <span class="meta-item">
+                        <span class="meta-icon">⏱️</span>
+                        ${this.formatTimeAgo(proc.timestamp)}
+                    </span>
+                </div>
             </div>
         `).join('');
 
-        list.querySelectorAll('.process-item').forEach(item => {
-            item.addEventListener('click', () => {
-                list.querySelectorAll('.process-item').forEach(el => el.classList.remove('active'));
-                item.classList.add('active');
-                this.showProcessDetails(this.processes[parseInt(item.dataset.index)]);
+        // Add click handlers for process cards
+        list.querySelectorAll('.process-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                // Don't trigger if clicking delete button
+                if (e.target.closest('.delete-btn')) return;
+
+                list.querySelectorAll('.process-card').forEach(el => el.classList.remove('active'));
+                card.classList.add('active');
+                this.showProcessDetails(this.processes[parseInt(card.dataset.index)]);
+            });
+        });
+
+        // Add delete button handlers
+        list.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.dataset.index);
+                if (confirm('Delete this process?')) {
+                    this.deleteProcess(index);
+                }
             });
         });
 
@@ -173,5 +223,27 @@ export const downloads = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    formatTimeAgo(timestamp) {
+        const seconds = Math.floor((Date.now() - timestamp) / 1000);
+
+        if (seconds < 60) return 'Just now';
+        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+        if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+        return new Date(timestamp).toLocaleDateString();
+    },
+
+    deleteProcess(index) {
+        if (index >= 0 && index < this.processes.length) {
+            this.processes.splice(index, 1);
+            try {
+                localStorage.setItem('dubbing_processes', JSON.stringify(this.processes));
+            } catch (e) {
+                console.error('Failed to update localStorage after delete:', e);
+            }
+            this.renderProcessList();
+        }
     }
 };
