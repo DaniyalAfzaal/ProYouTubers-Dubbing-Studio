@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <title>ProYouTubers Dubbing Studio</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎥</text></svg>">
     <link rel="stylesheet" href="./styles/main.css">
 </head>
 
@@ -21,19 +23,19 @@
             } catch (_) { }
         })();
     </script>
-        <header>
+    <header>
         <div class="header-container">
             <div class="brand-typography">
                 <h1 class="brand-name">ProYouTubers</h1>
                 <h2 class="brand-subtitle">Dubbing Studio</h2>
-                <p class="brand-tagline">Winning isn't everything, but wanting to win is.</p>
+                <p class="brand-tagline">Professional AI Dubbing at Scale</p>
             </div>
             <nav class="header-nav">
-                <button type="button" class="nav-btn" id="downloads-btn">
-                    <span class="btn-icon">📥</span>
+                <button type="button" class="nav-btn" id="downloads-btn" aria-label="Open downloads manager">
+                    <span class="btn-icon" aria-hidden="true">📥</span>
                     <span class="btn-label">Downloads</span>
                 </button>
-                <button type="button" class="theme-toggle" id="theme-toggle">
+                <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
                     <span aria-hidden="true">🌙</span>
                     <span class="theme-label">Dark</span>
                 </button>

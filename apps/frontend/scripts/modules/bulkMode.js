@@ -2,9 +2,14 @@
 // BULK DUBBING MODE HANDLERS
 // ============================================
 
+import { toast } from './toast.js';
+import { downloads } from './downloads.js';
+
 export const bulkMode = {
     currentBatchId: null,
     pollInterval: null,
+    pollErrorCount: 0,
+    videoItemsCache: new Map(),
 
     init() {
         this.setupModeToggle();
@@ -28,6 +33,9 @@ export const bulkMode = {
 
         radios.forEach(radio => {
             radio.addEventListener('change', () => {
+                // Disable mode switching if currently processing
+                if (submitBtn.disabled) return;
+
                 if (radio.value === 'bulk') {
                     singleInputs.hidden = true;
                     bulkInputs.hidden = false;
@@ -35,7 +43,7 @@ export const bulkMode = {
                 } else {
                     singleInputs.hidden = false;
                     bulkInputs.hidden = true;
-                    submitBtn.textContent = 'Start Dubbing';
+                    submitBtn.textContent = 'Run dubbing pipeline';
                 }
             });
         });
@@ -70,22 +78,29 @@ export const bulkMode = {
 
     setupSubmitHandler() {
         const form = document.getElementById('dub-form');
-        const originalSubmit = form.onsubmit;
 
-        form.onsubmit = async (e) => {
+        // Store reference to any existing listeners via event capture
+        let originalHandler = null;
+        const listeners = [];
+
+        // Capture current onsubmit if exists
+        if (form.onsubmit) {
+            originalHandler = form.onsubmit;
+        }
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            e.stopPropagation();
 
             const mode = document.querySelector('[name="processing-mode"]:checked')?.value;
 
             if (mode === 'bulk') {
                 await this.submitBulkDubbing();
-            } else {
-                // Call original single mode handler
-                if (originalSubmit) {
-                    originalSubmit.call(form, e);
-                }
+            } else if (originalHandler) {
+                // Call original handler if it exists
+                originalHandler.call(form, e);
             }
-        };
+        }, { capture: true });
     },
 
     async submitBulkDubbing() {
@@ -107,16 +122,20 @@ export const bulkMode = {
 
         // Validate we have something
         if (!filesInput?.files?.length && !urlsText?.trim()) {
-            alert('Please select files or enter URLs');
+            toast.warning('Please select files or enter URLs');
             return;
         }
 
         // FIX: Frontend validation for max 100 videos
         const totalVideos = (filesInput?.files?.length || 0) + (urlsText ? urlsText.split('\n').filter(u => u.trim()).length : 0);
         if (totalVideos > 100) {
-            alert('Maximum 100 videos allowed per batch');
+            toast.error('Maximum 100 videos allowed per batch');
             return;
         }
+
+        // Disable mode toggle during submission
+        const modeRadios = document.querySelectorAll('[name="processing-mode"]');
+        modeRadios.forEach(r => r.disabled = true);
 
         // Add all other form options (same as single mode)
         const dubForm = document.getElementById('dub-form');
@@ -155,9 +174,12 @@ export const bulkMode = {
             filesInput.value = '';
             document.getElementById('bulk-urls').value = '';
 
-            // Re-enable button
+            // Re-enable button and mode toggle
             submitBtn.disabled = false;
             submitBtn.textContent = '🚀 Start Bulk Dubbing';
+            modeRadios.forEach(r => r.disabled = false);
+
+            toast.success(`Batch started! Processing ${result.total} videos`);
 
             // Start polling for updates
             this.currentBatchId = result.batch_id;
@@ -165,11 +187,13 @@ export const bulkMode = {
 
         } catch (error) {
             console.error('Bulk dubbing error:', error);
-            alert(`Failed to start bulk dubbing: ${error.message}`);
+            toast.error(`Failed to start bulk dubbing: ${error.message}`);
 
             const submitBtn = document.querySelector('button[type="submit"]');
             submitBtn.disabled = false;
             submitBtn.textContent = '🚀 Start Bulk Dubbing';
+            const modeRadios = document.querySelectorAll('[name="processing-mode"]');
+            modeRadios.forEach(r => r.disabled = false);
         }
     },
 
@@ -233,10 +257,24 @@ export const bulkMode = {
         const list = document.getElementById('bulk-video-list');
         if (!list) return;
 
-        list.innerHTML = '';
-
+        // Optimized: Update only changed items instead of full rebuild
         videos.forEach((video, index) => {
-            const item = document.createElement('div');
+            const videoKey = `${this.currentBatchId}-${index}`;
+            const cached = this.videoItemsCache.get(videoKey);
+
+            // Check if we need to update this item
+            const videoStr = JSON.stringify(video);
+            if (cached && cached.data === videoStr) {
+                return; // No change, skip
+            }
+
+            // Get or create element
+            let item = cached?.element;
+            if (!item) {
+                item = document.createElement('div');
+                list.appendChild(item);
+            }
+
             item.className = `video-item ${video.status}`;
 
             let content = `
@@ -249,12 +287,39 @@ export const bulkMode = {
             }
 
             if (video.result && video.result.video_url) {
-                // FIX: Escape URL to prevent XSS
                 content += `<a href="${this.escapeHtml(video.result.video_url)}" class="download-link" download>⬇️ Download</a>`;
+
+                // Save to downloads manager when completed
+                if (video.status === 'completed' && !cached?.saved) {
+                    downloads.saveProcess({
+                        name: video.name,
+                        timestamp: Date.now(),
+                        source: video.name,
+                        languages: 'Bulk Dubbing',
+                        videoUrl: video.result.video_url,
+                        logs: `Bulk dubbing completed successfully`
+                    });
+                    this.videoItemsCache.set(videoKey, {
+                        element: item,
+                        data: videoStr,
+                        saved: true
+                    });
+                } else {
+                    this.videoItemsCache.set(videoKey, {
+                        element: item,
+                        data: videoStr,
+                        saved: cached?.saved || false
+                    });
+                }
+            } else {
+                this.videoItemsCache.set(videoKey, {
+                    element: item,
+                    data: videoStr,
+                    saved: false
+                });
             }
 
             item.innerHTML = content;
-            list.appendChild(item);
         });
     },
 

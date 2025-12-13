@@ -9,6 +9,7 @@ import { transcriptionReview, alignmentReview, ttsReview } from "./modules/revie
 import { theme } from "./modules/theme.js";
 import { bulkMode } from "./modules/bulkMode.js";
 import { downloads } from "./modules/downloads.js";
+import "./modules/errorBoundary.js";
 
 const initInvolveMode = () => {
   if (!el.modeToggle) return;

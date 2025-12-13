@@ -13,8 +13,18 @@ export const downloads = {
         // FIX: Add null checks for all elements
         if (downloadsBtn && downloadsPage) {
             downloadsBtn.addEventListener('click', () => {
-                downloadsPage.hidden = false;
-                this.loadProcesses();
+                // Show loading state
+                const originalText = downloadsBtn.textContent;
+                downloadsBtn.disabled = true;
+                downloadsBtn.textContent = 'Loading...';
+
+                // Small delay to show loading feedback
+                setTimeout(() => {
+                    downloadsPage.hidden = false;
+                    this.loadProcesses();
+                    downloadsBtn.disabled = false;
+                    downloadsBtn.textContent = originalText;
+                }, 100);
             });
         }
 
