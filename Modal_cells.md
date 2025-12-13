@@ -51,7 +51,10 @@ else:
 
 
 CELL 3:
-# L4 GPU configuration for 5-7x faster processing
+# GPU configuration - Customize GPU type and timeouts
+# Available GPU types: "T4", "L4", "A10G", "A100" (check Modal pricing for costs)
+GPU_TYPE = "L4"  # Change to "T4" for cheaper, "A100" for faster
+
 with modal.enable_output():
     # Build secrets list - add DeepL if configured
     secrets_list = [hf_secret]
@@ -67,12 +70,13 @@ with modal.enable_output():
         volumes={"/persistent-outputs": outputs_volume},  # 🆕 Persistent storage
         cpu=4,           # Reduced CPU (GPU handles heavy compute)
         memory=24576,    # 24 GiB RAM for GPU model loading
-        gpu="L4",        # NVIDIA L4 with 24GB VRAM (new syntax)
-        timeout=3*60*60,     # 3h lifetime
-        idle_timeout=60*60,  # 1h idle timeout
+        gpu=GPU_TYPE,    # Customizable GPU type
+        timeout=3*60*60,     # 3h max lifetime
+        idle_timeout=3*60,   # 3min idle timeout (cost savings!)
         verbose=True,
     )
-print("Sandbox created with L4 GPU + persistent volume:", sb.object_id)
+print(f"Sandbox created with {GPU_TYPE} GPU + persistent volume:", sb.object_id)
+print("⚡ Idle timeout: 3 minutes - GPU auto-releases for cost savings")
 
 
 CELL 4:
