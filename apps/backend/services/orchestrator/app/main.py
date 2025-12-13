@@ -781,6 +781,50 @@ async def maybe_run_audio_separation(
     return vocals_path, background_path, dubbing_strategy
 
 
+async def copy_to_persistent_storage(workspace_id: str, workspace_path: Path) -> None:
+    """
+    Copy completed videos to Modal persistent volume for permanent storage.
+    Gracefully handles both Modal (with volume) and local deployment.
+    
+    Args:
+        workspace_id: Workspace ID
+        workspace_path: Local workspace path with outputs
+    """
+    try:
+        persistent_root = Path("/persistent-outputs")
+        
+        # Check if we're on Modal (volume exists)
+        if not persistent_root.exists():
+            logger.info("Not on Modal - skipping persistent storage")
+            return
+        
+        # Find all MP4 files in workspace
+        output_files = list(workspace_path.glob("dubbed_video_*.mp4"))
+        output_files.extend(list(workspace_path.glob("*.srt")))
+        output_files.extend(list(workspace_path.glob("*.vtt")))
+        
+        if not output_files:
+            logger.info("No output files to persist")
+            return
+        
+        dest_dir = persistent_root / workspace_id
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        
+        import shutil
+        copied_count = 0
+        for src_path in output_files:
+            if src_path.exists():
+                dest_path = dest_dir / src_path.name
+                logger.info(f"Copying {src_path.name} to persistent storage")
+                shutil.copy2(src_path, dest_path)
+                copied_count += 1
+        
+        logger.info(f"✅ {copied_count} files persisted to volume: {dest_dir}")
+        
+    except Exception as exc:
+        logger.error(f"Failed to copy to persistent storage: {exc}", exc_info=True)
+
+
 async def run_asr_step(
     client: httpx.AsyncClient,
     raw_audio_path: Path,

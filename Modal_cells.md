@@ -9,6 +9,13 @@ import modal
 
 app = modal.App.lookup('proyoutubers-dubbing-modal', create_if_missing=True)
 
+# Create persistent volume for dubbed videos
+outputs_volume = modal.Volume.from_name(
+    "proyoutubers-outputs", 
+    create_if_missing=True
+)
+print("✅ Persistent volume 'proyoutubers-outputs' configured")
+
 # Use Modal's CUDA image with PyTorch pre-installed (includes cuDNN)
 proyoutubers_image = (
     modal.Image.from_registry("nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04", add_python="3.11")
@@ -57,6 +64,7 @@ with modal.enable_output():
         image=proyoutubers_image,
         secrets=secrets_list,  # Dynamic secrets list
         encrypted_ports=[8000, 5173],  # orchestrator and UI
+        volumes={"/persistent-outputs": outputs_volume},  # 🆕 Persistent storage
         cpu=4,           # Reduced CPU (GPU handles heavy compute)
         memory=24576,    # 24 GiB RAM for GPU model loading
         gpu="L4",        # NVIDIA L4 with 24GB VRAM (new syntax)
@@ -64,7 +72,7 @@ with modal.enable_output():
         idle_timeout=60*60,  # 1h idle timeout
         verbose=True,
     )
-print("Sandbox created with L4 GPU:", sb.object_id)
+print("Sandbox created with L4 GPU + persistent volume:", sb.object_id)
 
 
 CELL 4:
@@ -159,6 +167,16 @@ http {
       proxy_connect_timeout 600s;
       proxy_read_timeout    600s;
       proxy_send_timeout    600s;
+    }
+
+    location /api/download/ {
+      proxy_pass http://127.0.0.1:8000;
+      proxy_set_header Host $host;
+      proxy_connect_timeout 600s;
+      proxy_read_timeout 1800s;    # 30 min for large videos
+      proxy_send_timeout 1800s;
+      proxy_buffering off;         # Stream directly
+      proxy_request_buffering off;
     }
 
     location / {
