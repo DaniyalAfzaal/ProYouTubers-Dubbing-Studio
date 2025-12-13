@@ -207,12 +207,20 @@ export const bulkMode = {
     },
 
     startPolling(batchId) {
+        // FIX: Prevent race condition - clear existing interval first
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
+            this.pollInterval = null;
         }
 
-        // FIX: Reset error count BEFORE starting interval
+        // FIX: Clear cache for new batch to prevent memory leak
+        this.videoItemsCache.clear();
+
+        // Reset error count BEFORE starting interval
         this.pollErrorCount = 0;
+
+        // Update current batch ID
+        this.currentBatchId = batchId;
 
         this.pollInterval = setInterval(async () => {
             try {
