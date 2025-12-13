@@ -88,12 +88,14 @@ body {
 
 main {
     display: grid;
-    gap: 24px;
+    gap: 32px;
     grid-template-columns: 1fr;
     align-items: start;
     flex: 1 1 auto;
-    padding: 20px;
-    max-width: 100%;
+    padding: 32px 24px;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
     box-sizing: border-box;
 }
 
@@ -1840,7 +1842,9 @@ header {
         max-width: 2000px;
         margin: 0 auto;
     }
-}/* ============================================
+}
+
+/* ============================================
    DOWNLOADS BUTTON - Elegant & Eye-Catching
    ============================================ */
 .downloads-btn {
