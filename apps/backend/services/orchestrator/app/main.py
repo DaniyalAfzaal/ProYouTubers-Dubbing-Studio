@@ -927,22 +927,25 @@ async def align_asr_transcription(
     return ASRResponse(**response.json())
 
 
-async def run_translation_step(
+async def translate_segments(
     client: httpx.AsyncClient,
     tr_model: str,
-    segments: List[Dict[str, Any]],
+    tr_provider: str,  # ADD: provider parameter
+    segments: List[Segment],
     source_lang: Optional[str],
     target_lang: Optional[str],
 ) -> ASRResponse:
+    # FIX: Pass provider via extra field
     tr_req = TranslateRequest(
         segments=segments,
         source_lang=source_lang if source_lang else None,
         target_lang=target_lang if target_lang else None,
+        extra={"model_name": tr_provider},  # ADD: Pass provider
         )
     response = await client.post(TR_URL, params={"model_key": tr_model}, json=tr_req.model_dump())
     if response.status_code != 200:
         error_log = (
-            f"Translation service call failed (model={tr_model}, "
+            f"Translation service call failed (model={tr_model}, provider={tr_provider}, "
             f"segments={len(segments)}, source_lang={source_lang}, target_lang={target_lang}): {response.text}"
         )
         logger.error(error_log)
