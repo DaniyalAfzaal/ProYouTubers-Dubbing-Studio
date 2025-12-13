@@ -1,24 +1,115 @@
-/* Center align bulk progress section */
+/* Center align and responsively style batch processing progress section */
+
 #bulk-progress {
-    max-width: 1100px;
-    margin: 0 auto;
+    max-width: 1200px;
+    width: 100%;
+    margin: 32px auto;
+    padding: 0 24px;
 }
 
-.bulk-progress-container {
+/* Center inner container */
+#bulk-progress>div {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 24px;
 }
 
-.bulk-progress-stats {
+/* Center the title */
+#bulk-progress h2 {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+/* Center stats display */
+.bulk-progress-stats,
+#bulk-progress>div>div:first-of-type {
     display: flex;
     gap: 24px;
     justify-content: center;
     flex-wrap: wrap;
+    width: 100%;
 }
 
-.bulk-progress-bar-container {
+/* Center progress bar container */
+.bulk-progress-bar-container,
+#bulk-progress .progress-bar-container {
     width: 100%;
     max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Center video list */
+#bulk-progress .video-list,
+#bulk-progress>div>div:last-of-type {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Responsive padding adjustments */
+@media (max-width: 768px) {
+    #bulk-progress {
+        padding: 0 16px;
+        margin: 24px auto;
+    }
+
+    .bulk-progress-stats,
+    #bulk-progress>div>div:first-of-type {
+        gap: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    #bulk-progress {
+        padding: 0 12px;
+        margin: 16px auto;
+    }
+
+    .bulk-progress-stats,
+    #bulk-progress>div>div:first-of-type {
+        gap: 12px;
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* Header responsive margins */
+header {
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+@media (max-width: 768px) {
+    header {
+        padding: 20px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    header {
+        padding: 16px 12px;
+    }
+}
+
+/* Main content centering with responsive padding */
+main {
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 32px 24px;
+}
+
+@media (max-width: 768px) {
+    main {
+        padding: 24px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    main {
+        padding: 16px 12px;
+    }
 }
