@@ -453,7 +453,7 @@ class Aligner(ABC):
         try:
             import MeCab
             return MeCab.Tagger()
-        except:
+        except Exception:
             return None
 
     def _is_cjk(self, char: str) -> bool:
@@ -524,13 +524,13 @@ class Aligner(ABC):
             try:
                 import jieba
                 return [t for t in jieba.cut(text, cut_all=False) if t.strip()]
-            except:
+            except Exception:
                 pass
         if lang == "ko":
             try:
                 from konlpy.tag import Okt
                 return Okt().morphs(text)
-            except:
+            except Exception:
                 pass
         return [text]
 
