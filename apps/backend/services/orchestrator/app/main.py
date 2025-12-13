@@ -781,7 +781,7 @@ async def maybe_run_audio_separation(
     return vocals_path, background_path, dubbing_strategy
 
 
-async def copy_to_persistent_storage(workspace_id: str, workspace_path: Path) -> None:
+async def copy_to_persistent_storage(workspace_id: str, workspace_path: Path) -> bool:
     """
     Copy completed videos to Modal persistent volume for permanent storage.
     Gracefully handles both Modal (with volume) and local deployment.
@@ -789,6 +789,9 @@ async def copy_to_persistent_storage(workspace_id: str, workspace_path: Path) ->
     Args:
         workspace_id: Workspace ID
         workspace_path: Local workspace path with outputs
+    
+    Returns:
+        True if all files copied successfully, False otherwise
     """
     try:
         persistent_root = Path("/persistent-outputs")
@@ -796,33 +799,70 @@ async def copy_to_persistent_storage(workspace_id: str, workspace_path: Path) ->
         # Check if we're on Modal (volume exists)
         if not persistent_root.exists():
             logger.info("Not on Modal - skipping persistent storage")
-            return
+            return True  # Not an error, just not on Modal
         
-        # Find all MP4 files in workspace
+        # Find all output files
         output_files = list(workspace_path.glob("dubbed_video_*.mp4"))
         output_files.extend(list(workspace_path.glob("*.srt")))
         output_files.extend(list(workspace_path.glob("*.vtt")))
         
         if not output_files:
             logger.info("No output files to persist")
-            return
+            return True  # Not an error, just nothing to copy
+        
+        # FIX Bug #30: Check available disk space
+        import shutil as sh
+        try:
+            stat = sh.disk_usage(persistent_root)
+            required_space = sum(f.stat().st_size for f in output_files if f.exists())
+            
+            # Require 20% buffer above required space
+            if stat.free < required_space * 1.2:
+                logger.error(
+                    f"Insufficient disk space on volume. "
+                    f"Required: {required_space / 1e9:.2f}GB, "
+                    f"Available: {stat.free / 1e9:.2f}GB"
+                )
+                return False
+        except Exception as space_exc:
+            logger.warning(f"Could not check disk space: {space_exc}")
+            # Continue anyway - better to try than fail
         
         dest_dir = persistent_root / workspace_id
         dest_dir.mkdir(parents=True, exist_ok=True)
         
         import shutil
         copied_count = 0
-        for src_path in output_files:
-            if src_path.exists():
-                dest_path = dest_dir / src_path.name
-                logger.info(f"Copying {src_path.name} to persistent storage")
-                shutil.copy2(src_path, dest_path)
-                copied_count += 1
+        failed_files = []
         
-        logger.info(f"✅ {copied_count} files persisted to volume: {dest_dir}")
+        # FIX Bug #26: Track partial failures
+        for src_path in output_files:
+            try:
+                if src_path.exists():
+                    dest_path = dest_dir / src_path.name
+                    logger.info(f"Copying {src_path.name} to persistent storage")
+                    shutil.copy2(src_path, dest_path)
+                    copied_count += 1
+                else:
+                    logger.warning(f"Source file not found: {src_path.name}")
+                    failed_files.append(src_path.name)
+            except Exception as file_exc:
+                logger.error(f"Failed to copy {src_path.name}: {file_exc}")
+                failed_files.append(src_path.name)
+        
+        if failed_files:
+            logger.warning(
+                f"Copied {copied_count}/{len(output_files)} files. "
+                f"Failed: {', '.join(failed_files)}"
+            )
+            return False
+        
+        logger.info(f"✅ {copied_count} files persisted successfully to volume: {dest_dir}")
+        return True
         
     except Exception as exc:
         logger.error(f"Failed to copy to persistent storage: {exc}", exc_info=True)
+        return False
 
 
 async def run_asr_step(
