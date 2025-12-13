@@ -53,7 +53,9 @@ input[type="text"]:focus,
 input[type="url"]:focus,
 select:focus,
 textarea:focus,
-.tag-input:focus-within {
+.tag-input:focus-within,
+#bulk-source-lang:focus,
+input[name="source_lang"]:focus {
     outline: none;
     border-color: var(--accent-primary) !important;
     box-shadow: 0 0 0 4px var(--accent-glow) !important;
