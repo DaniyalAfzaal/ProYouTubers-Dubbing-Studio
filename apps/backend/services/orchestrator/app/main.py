@@ -732,6 +732,11 @@ async def maybe_run_audio_separation(
     if not audio_sep and dubbing_strategy != "full_replacement": # here we just supposed that if audio separation is disabled and the strategy is not full replacement we don't need to do separation
         return None, None, dubbing_strategy
     
+    # FIX: Check if raw_audio file exists before proceeding
+    if not raw_audio_path.exists():
+        logger.error(f"Raw audio file not found: {raw_audio_path}. Cannot perform audio separation.")
+        return None, None, "default"
+    
     vocals_path = preprocessing_dir / "vocals.wav"
     background_path = preprocessing_dir / "background.wav"
 
@@ -743,6 +748,12 @@ async def maybe_run_audio_separation(
 
     model_file_dir = BASE / "models_cache" / "audio-separator-models" / Path(sep_model).stem
     logger.info("Starting audio separation with model %s", sep_model)
+    
+    # FIX: Double-check file exists right before separation
+    if not raw_audio_path.exists():
+        logger.error(f"Raw audio file disappeared before separation: {raw_audio_path}")
+        return None, None, "default"
+    
     try:
         await run_in_thread(
             separation,
@@ -756,6 +767,10 @@ async def maybe_run_audio_separation(
     except ValueError as exc:
         logger.error("Audio separation failed with %s", exc)
         logger.error("Supported models:\n%s", json.dumps(filter_supported_models_grouped(), indent=2))
+        return None, None, "default"
+    except FileNotFoundError as exc:
+        logger.error(f"File not found during audio separation: {exc}")
+        logger.error(f"Raw audio path was: {raw_audio_path}, exists: {raw_audio_path.exists()}")
         return None, None, "default"
 
     if not vocals_path.exists() or not background_path.exists():
