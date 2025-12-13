@@ -1307,12 +1307,17 @@ async def download_video(video_id: str, filename: str):
     persistent_root = Path("/persistent-outputs")
     if persistent_root.exists():
         video_path = persistent_root / video_id / filename
-        if video_path.exists():
-            return FileResponse(
-                path=str(video_path),
-                filename=filename,
-                media_type="video/mp4" if filename.endswith(".mp4") else "application/octet-stream"
-            )
+        try:
+            video_path.resolve().relative_to(persistent_root.resolve())
+        except ValueError:
+            pass  # Path outside allowed directory, try local
+        else:
+            if video_path.exists() and video_path.is_file():
+                return FileResponse(
+                    path=str(video_path),
+                    filename=filename,
+                    media_type="video/mp4" if filename.endswith(".mp4") else "application/octet-stream"
+                )
     
     # Fallback to local outs directory
     local_path = BASE / "outs" / video_id / filename
