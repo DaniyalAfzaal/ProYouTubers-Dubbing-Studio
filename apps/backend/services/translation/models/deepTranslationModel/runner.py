@@ -54,10 +54,18 @@ def build_translator(req: TranslateRequest, logger: logging.Logger) -> Any:
         logger.warning("Unknown translator provider '%s'. Falling back to Google Translator.", provider)
     logger.info("Using provider=%s for translation.", TranslatorCls.__name__)
 
+    # FIX: Normalize language codes for DeepL BEFORE setting kwargs
+    source_lang = req.source_lang
+    target_lang = req.target_lang
+    if provider in ["deepl", "deepltranslator", "deep_translator"]:
+        source_lang = normalize_lang_code(source_lang)
+        target_lang = normalize_lang_code(target_lang)
+        logger.info(f"Normalized for DeepL: {req.source_lang} → {source_lang}, {req.target_lang} → {target_lang}")
+
     # Ensure source/target are present unless explicitly provided
     kwargs = {}
-    kwargs.setdefault("source", getattr(req, "source_lang", None) or "auto")
-    kwargs.setdefault("target", getattr(req, "target_lang", None))
+    kwargs.setdefault("source", source_lang or "auto")
+    kwargs.setdefault("target", target_lang)
 
     # Optionally source API keys from env if not provided
     if provider in ["deepl", "deepltranslator", "deep_translator"]:
