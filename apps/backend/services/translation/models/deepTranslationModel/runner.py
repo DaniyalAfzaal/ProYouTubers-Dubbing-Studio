@@ -15,9 +15,19 @@ from deep_translator import (
 from common_schemas.models import ASRResponse, TranslateRequest, Segment
 from common_schemas.service_utils import get_service_logger
 import json, sys, os, contextlib, logging, time
+from typing import Any
 
 
-def build_translator(req: "TranslateRequest", logger: logging.Logger):
+def normalize_lang_code(lang: str) -> str:
+    """Normalize language codes for DeepL compatibility.
+    DeepL only accepts base ISO 639-1 codes (e.g., 'zh', not 'zh-CN')."""
+    if not lang:
+        return lang
+    # Strip region/script suffixes (zh-CN → zh, pt-BR → pt, etc.)
+    return lang.split('-')[0].split('_')[0].lower()
+
+def build_translator(req: TranslateRequest, logger: logging.Logger) -> Any:
+    """Build translator instance based on provider."""
     # Map provider names to translator classes
     translators = {
         "google": GoogleTranslator,
@@ -34,10 +44,6 @@ def build_translator(req: "TranslateRequest", logger: logging.Logger):
         "qcri": QcriTranslator,
     }
     
-    extra_0 = req.extra or {}
-    provider = extra_0.get("model_name", "google").lower()
-
-    TranslatorCls = translators.get(provider, GoogleTranslator)
     if TranslatorCls is GoogleTranslator and provider not in translators:
         logger.warning("Unknown translator provider '%s'. Falling back to Google Translator.", provider)
     logger.info("Using provider=%s for translation.", TranslatorCls.__name__)
