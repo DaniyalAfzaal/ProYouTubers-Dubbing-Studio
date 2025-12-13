@@ -31,19 +31,38 @@ export const bulkMode = {
         const bulkInputs = document.getElementById('bulk-mode-inputs');
         const submitBtn = document.querySelector('button[type="submit"]');
 
+        // Debug: Log what we found
+        console.log('BulkMode: Setting up mode toggle');
+        console.log('BulkMode: Found', radios.length, 'radio buttons');
+        console.log('BulkMode: singleInputs =', singleInputs);
+        console.log('BulkMode: bulkInputs =', bulkInputs);
+
+        // Safety check
+        if (!singleInputs || !bulkInputs) {
+            console.error('BulkMode: Could not find required input containers!');
+            return;
+        }
+
         radios.forEach(radio => {
             radio.addEventListener('change', () => {
+                console.log('BulkMode: Radio changed to', radio.value);
+
                 // Disable mode switching if currently processing
-                if (submitBtn.disabled) return;
+                if (submitBtn && submitBtn.disabled) {
+                    console.log('BulkMode: Blocked - submit button is disabled');
+                    return;
+                }
 
                 if (radio.value === 'bulk') {
+                    console.log('BulkMode: Switching to BULK mode');
                     singleInputs.hidden = true;
                     bulkInputs.hidden = false;
-                    submitBtn.textContent = '🚀 Start Bulk Dubbing';
+                    if (submitBtn) submitBtn.textContent = '🚀 Start Bulk Dubbing';
                 } else {
+                    console.log('BulkMode: Switching to SINGLE mode');
                     singleInputs.hidden = false;
                     bulkInputs.hidden = true;
-                    submitBtn.textContent = 'Run dubbing pipeline';
+                    if (submitBtn) submitBtn.textContent = 'Run dubbing pipeline';
                 }
             });
         });
