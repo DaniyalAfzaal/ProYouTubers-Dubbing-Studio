@@ -876,10 +876,18 @@ async def run_asr_step(
     perform_alignment: bool = True,
     diarize: bool = True,
 ) -> Tuple[ASRResponse, Optional[ASRResponse]]:
+    # FIX: Extract language code from UI format "Chinese (zh)" -> "zh"
+    import re
+    language_hint = None
+    if source_lang:
+        # Extract code from parentheses: "Chinese (zh)" -> "zh"
+        match = re.search(r'\(([a-z]{2,3})\)', source_lang)
+        language_hint = match.group(1) if match else source_lang.strip()
+    
     asr_req = ASRRequest(
         audio_path=str(raw_audio_path),
         model_key=asr_model,
-        language_hint=source_lang,
+        language_hint=language_hint,  # Use extracted code
         min_speakers=min_speakers,
         max_speakers=max_speakers,
     )
