@@ -2487,10 +2487,6 @@ async def dub(
         except Exception as exc:
             logger.error(f"Failed to persist outputs: {exc}", exc_info=True)
 
-        # FIX: Add workspace_id to final result for download tracking
-        final_result["workspace_id"] = workspace.workspace_id
-        final_result["source_path"] = str(media_path)
-
         return final_result
 
     except asyncio.CancelledError:
