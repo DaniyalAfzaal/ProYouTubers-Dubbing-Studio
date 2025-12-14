@@ -168,11 +168,20 @@ def verify_fixes():
     print("  2. Run a dubbing job")
     print("  3. Check logs for improvements")
 
+    # Configure .env with HF_TOKEN
+    # This assumes HF_TOKEN is available as an environment variable in the Modal function's execution context
+    # If HF_TOKEN is a Modal Secret, it will be automatically available.
+    subprocess.run(
+        ["sed", "-i", "s/^HF_TOKEN=.*/HF_TOKEN=$HF_TOKEN/", "/root/proyoutubers-dubbing/.env"],
+        check=True,
+        env=os.environ # Pass current environment to subprocess
+    )
+
     print("Repository cloned and .env configured.")
 
     print("CELL 5A - UPDATE WITH LATEST FIXES:")
     # Pull latest code with CUDA fix and bulk mode validation fix
-    subprocess.run(["cd", "/root/proyoutubers-dubbing", "&&", "git", "pull", "origin", "main"], check=True)
+    subprocess.run(["git", "-C", "/root/proyoutubers-dubbing", "pull", "origin", "main"], check=True)
 
     print("✅ Code updated with latest fixes:")
     print("  - CUDA alignment fix (GPU acceleration)")
