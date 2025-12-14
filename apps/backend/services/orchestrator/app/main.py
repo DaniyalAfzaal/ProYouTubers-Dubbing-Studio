@@ -1405,6 +1405,9 @@ async def concatenate_segments(
         alpha=general_cfg.get("concatenation", {}).get("alpha", 0.25),
         min_dur=general_cfg.get("concatenation", {}).get("min_dur", 0.4),
         translation_segments=translation_segments,
+        # NEW: Strict timing parameters from config
+        strict_timing=general_cfg.get("strict_segment_timing", {}).get("enabled", True),
+        max_speed_ratio=float(general_cfg.get("strict_segment_timing", {}).get("max_speed_ratio", 1.35))
     )
 
 

@@ -14,6 +14,20 @@ import torch
 import torchaudio
 import tempfile
 
+# Import strict timing functions for segment-by-segment synchronization
+try:
+    from .strict_timing import (
+        concatenate_audio_strict_timing,
+        adjust_segment_to_exact_timing,
+        calculate_segment_timing_stats
+    )
+    STRICT_TIMING_AVAILABLE = True
+except ImportError:
+    STRICT_TIMING_AVAILABLE = False
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning("Strict timing module not available - using legacy timing")
+
 _silero_vad_lock = threading.Lock()
 _silero_vad_bundle: Optional[Tuple[torch.nn.Module, Tuple]] = None
 
@@ -318,7 +332,16 @@ def adjust_audio_speed(input_files: List[Dict], output_dir: Optional[Path] = Non
     
     return resized
 
-def concatenate_audio(segments, output_file, target_duration: Optional[float] = None, alpha: float = 0.4, min_dur: float = 0.3, translation_segments: Optional[List[Dict]] = None) -> Tuple[str, Optional[List[Dict]]]:
+def concatenate_audio(
+    segments, 
+    output_file, 
+    target_duration: Optional[float] = None, 
+    alpha: float = 0.4, 
+    min_dur: float = 0.3, 
+    translation_segments: Optional[List[Dict]] = None,
+    strict_timing: bool = True,  # NEW: Enable strict segment-by-segment timing
+    max_speed_ratio: float = 1.35  # NEW: Maximum speed adjustment for strict timing
+) -> Tuple[str, Optional[List[Dict]]]:
     """
     Concatenate audio segments with intelligent duration adjustment.
     
@@ -326,16 +349,52 @@ def concatenate_audio(segments, output_file, target_duration: Optional[float] = 
         segments (list): List of segment dicts with keys: 'audio_url', 'start', 'end'
         output_file (str): Path for the output concatenated audio file
         target_duration (float, optional): Target duration in seconds. If provided:
-            - Segments longer than expected keep their actual duration
-            - Remaining time is distributed proportionally to other segments
-            - Segments are stretched if needed to fill their allocated time
-            - Silence is added between segments to match target duration
-        alpha (float): max autoriseStretch factor for short segments (default: 0.4 meaning can stretch 40% longer)
-        min_dur (float): Minimum duration for segments (default: 0.3)
+            - With strict_timing=True: Each segment forced to exact original timing
+            - With strict_timing=False: Legacy centering logic with silence padding
+        alpha (float): max autoriseStretch factor for short segments (legacy mode)
+        min_dur (float): Minimum duration for segments (legacy mode)
         translation_segments (list, optional): List of translation segment dicts to update timings
+        strict_timing (bool): If True, force exact segment timing (recommended for correct sync)
+        max_speed_ratio (float): Maximum speed adjustment allowed in strict mode (1.35 = 35%)
+        
     Returns:
-        str: Path to the concatenated audio file
+        Tuple of (output_file_path, updated_translation_segments)
+        
+    NEW BEHAVIOR (strict_timing=True):
+        - Each segment plays at EXACT original timestamps
+        - Example: Chinese [0-2.4s] → English compressed to fit [0-2.4s]
+        - Maintains correct timing synchronization
+        - May compress/stretch audio within max_speed_ratio limits
+        
+    LEGACY BEHAVIOR (strict_timing=False):
+        - Centers segments within their time slots
+        - Adds silence padding to fill gaps
+        - May cause timing drift
     """
+    # NEW: Use strict timing if available and enabled
+    if strict_timing and STRICT_TIMING_AVAILABLE and target_duration is not None:
+        try:
+            result, updated_segments, quality_warnings = concatenate_audio_strict_timing(
+                segments=segments,
+                output_file=output_file,
+                target_duration=target_duration,
+                max_speed_ratio=max_speed_ratio,
+                translation_segments=translation_segments
+            )
+            
+            if quality_warnings > 0:
+                print(f"\n⚠️  {quality_warnings} segment(s) exceeded quality thresholds")
+                print(f"   Consider using more concise translations or increasing max_speed_ratio")
+            
+            return result, updated_segments
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Strict timing failed: {e}, falling back to legacy mode")
+            # Fall through to legacy mode
+    
+    # LEGACY MODE (original centering logic)
     if len(segments) < 1:
         raise ValueError("At least 1 segment is required for concatenation")
     

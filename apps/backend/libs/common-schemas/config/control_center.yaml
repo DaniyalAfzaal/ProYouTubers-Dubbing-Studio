@@ -19,6 +19,14 @@ concatenation:
   alpha: 0.25
   min_dur: 0.4
 
+# NEW: Strict segment timing for correct synchronization
+# Ensures dubbed segments play at exact same timestamps as original speech
+strict_segment_timing:
+  enabled: true  # Enable strict timing (recommended for Chinese→English)
+  max_speed_ratio: 1.35  # Maximum speed adjustment (1.35 = 35% compression/expansion)
+  # Note: Chinese is typically 20-40% faster than English
+  # Set higher for more aggressive compression, lower for better quality
+
 overlay_on_background:
   ducking_db: 0.0
 
