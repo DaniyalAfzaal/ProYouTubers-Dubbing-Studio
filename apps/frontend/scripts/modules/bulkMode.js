@@ -229,9 +229,13 @@ export const bulkMode = {
         const dubForm = document.getElementById('dub-form');
         const singleFormData = new FormData(dubForm);
 
-        // FIX Bug #18: Get target languages from BULK tag input
-        const targetLangs = Array.from(document.querySelectorAll('#bulk-target-lang-tags .tag'))
-            .map(tag => tag.dataset.code)
+        // FIX Bug #18: Get target languages from BULK tag input (using correct selector)
+        const targetLangs = Array.from(document.querySelectorAll('#bulk-target-lang-tags .tag-badge'))
+            .map(tag => {
+                const hiddenInput = tag.querySelector('input[type="hidden"]');
+                return hiddenInput ? hiddenInput.value : '';
+            })
+            .filter(code => code)
             .join(',');
 
         if (!targetLangs) {
