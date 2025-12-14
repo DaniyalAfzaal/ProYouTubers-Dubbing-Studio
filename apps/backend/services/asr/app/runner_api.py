@@ -1,4 +1,4 @@
-from __name__ import annotations
+from __future__ import annotations
 import json, subprocess, sys, os  # FIX: Added os import
 import shutil
 from typing import Type, TypeVar
