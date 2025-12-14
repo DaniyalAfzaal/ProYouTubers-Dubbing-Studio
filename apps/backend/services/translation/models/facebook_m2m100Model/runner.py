@@ -49,7 +49,41 @@ def _translate(req: TranslateRequest) -> ASRResponse:
     log_level = getattr(logging, log_level, logging.INFO)
     logger = get_service_logger("translation.facebook_m2m100", log_level)
     run_start = time.perf_counter()
+    
+    # FIX: Use correct HuggingFace model name (not "facebook_m2m100")
     model_name = (req.extra or {}).get("model_name", "facebook/m2m100_418M")
+    
+    # FIX: M2M100 requires base language codes without regions (zh not zh-CN)
+    def normalize_m2m_lang(lang: str) -> str:
+        """Normalize language codes for M2M100 compatibility."""
+        if not lang:
+            return lang
+        # Strip region suffixes: zh-CN → zh, en-US → en, pt-BR → pt
+        base_lang = lang.split('-')[0].split('_')[0].lower()
+        
+        # M2M100 specific mappings
+        mappings = {
+            'cmn': 'zh',  # Mandarin → Chinese
+            'yue': 'zh',  # Cantonese → Chinese  
+            'jpn': 'ja',  # Japanese
+            'kor': 'ko',  # Korean
+            'fra': 'fr',  # French
+            'deu': 'de',  # German
+            'spa': 'es',  # Spanish
+            'por': 'pt',  # Portuguese
+        }
+        return mappings.get(base_lang, base_lang)
+    
+    source_lang = normalize_m2m_lang(req.source_lang)
+    target_lang = normalize_m2m_lang(req.target_lang)
+    
+    if source_lang != req.source_lang or target_lang != req.target_lang:
+        logger.info(
+            f"Normalized language codes for M2M100: "
+            f"source {req.source_lang} → {source_lang}, "
+            f"target {req.target_lang} → {target_lang}"
+        )
+    
     model, tokenizer, device = _load_model(model_name, log_level)
 
     out = ASRResponse()
@@ -57,21 +91,21 @@ def _translate(req: TranslateRequest) -> ASRResponse:
     logger.info(
         "Starting M2M translation segments=%d source=%s target=%s model=%s device=%s",
         len(req.segments or []),
-        req.source_lang,
-        req.target_lang,
+        source_lang,
+        target_lang,
         model_name,
         device,
     )
 
     for segment in req.segments:
         seg_start = time.perf_counter()
-        tokenizer.src_lang = req.source_lang
+        tokenizer.src_lang = source_lang
         encoded = tokenizer(segment.text, return_tensors="pt")
         encoded = {k: v.to(device) for k, v in encoded.items()}
 
         generated_tokens = model.generate(
             **encoded,
-            forced_bos_token_id=tokenizer.get_lang_id(req.target_lang),
+            forced_bos_token_id=tokenizer.get_lang_id(target_lang),
         )
         translated_text = tokenizer.batch_decode(generated_tokens, skip_special_tokens=skip_special)[0]
         out.segments.append(
@@ -80,10 +114,10 @@ def _translate(req: TranslateRequest) -> ASRResponse:
                 end=segment.end,
                 text=translated_text,
                 speaker_id=segment.speaker_id,
-                lang=req.target_lang,
+                lang=target_lang,  # Use normalized language
             )
         )
-        out.language = req.target_lang
+        out.language = target_lang  # Use normalized language
         logger.info(
             "Translated segment text_len=%d duration=%.2fs",
             len(segment.text or ""),
