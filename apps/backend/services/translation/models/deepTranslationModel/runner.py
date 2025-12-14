@@ -54,9 +54,23 @@ def build_translator(req: TranslateRequest, logger: logging.Logger) -> Any:
         logger.warning("Unknown translator provider '%s'. Falling back to Google Translator.", provider)
     logger.info("Using provider=%s for translation.", TranslatorCls.__name__)
 
-    # FIX: Normalize language codes for DeepL BEFORE setting kwargs
+    # FIX: Extract language codes from UI format "english (en)" -> "en"
+    import re
     source_lang = req.source_lang
     target_lang = req.target_lang
+    
+    # Extract code from parentheses if present (e.g., "english  (en)" -> "en")
+    if source_lang:
+        match = re.search(r'\(([a-z]{2,3}(-[A-Z]{2})?)\)', source_lang)
+        source_lang = match.group(1) if match else source_lang.strip()
+    
+    if target_lang:
+        match = re.search(r'\(([a-z]{2,3}(-[A-Z]{2})?)\)', target_lang)
+        target_lang = match.group(1) if match else target_lang.strip()
+    
+    logger.info(f"Extracted language codes: source={source_lang}, target={target_lang}")
+    
+    # FIX: Normalize language codes for DeepL BEFORE setting kwargs
     if provider in ["deepl", "deepltranslator", "deep_translator"]:
         source_lang = normalize_lang_code(source_lang)
         target_lang = normalize_lang_code(target_lang)
