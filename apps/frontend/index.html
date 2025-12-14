@@ -79,9 +79,9 @@
                     <legend>🎬 Media Input</legend>
 
                     <label>
-                        <span class="label-with-icon">📁 Upload Local File</span>
+                        <span class="label-with-icon"><strong>📁 Upload Local File</strong></span>
                         <input type="file" name="file" accept="video/*,audio/*">
-                        <small class="hint-text">Supports: MP4, MOV, AVI, MP3, WAV, etc.</small>
+                        <small class="hint-text">Supports MP4, MOV, AVI, MP3, WAV, etc. • Single file only</small>
                     </label>
 
                     <div class="divider-text">
@@ -89,10 +89,9 @@
                     </div>
 
                     <label>
-                        <span class="label-with-icon">🔗 Paste Video URL</span>
-                        <input type="url" name="video_url"
-                            placeholder="https://www.youtube.com/watch?v=... or Instagram, TikTok, etc.">
-                        <small class="hint-text">Supports: YouTube, Instagram, TikTok, Twitter, Facebook, and
+                        <span class="label-with-icon"><strong>🔗 Paste Video URL</strong></span>
+                        <input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=...">
+                        <small class="hint-text">Supports YouTube, Instagram, TikTok, Twitter, Facebook, and
                             more</small>
                         <div class="download-progress" id="download-progress" hidden>
                             <div class="download-bar" id="download-bar"></div>
@@ -126,10 +125,11 @@
                     <legend>📹 Bulk Media Input</legend>
 
                     <label>
-                        <span class="label-with-icon">📁 Upload Multiple Files</span>
+                        <span class="label-with-icon"><strong>📁 Upload Multiple Files</strong></span>
                         <input type="file" id="bulk-files" multiple accept="video/*,audio/*">
                         <span class="file-count" id="bulk-file-count"></span>
-                        <small class="hint-text">Select up to 100 video/audio files at once</small>
+                        <small class="hint-text">Supports MP4, MOV, AVI, MP3, WAV, etc. • Up to 100 files per
+                            batch</small>
                     </label>
 
                     <div class="divider-text">
@@ -137,12 +137,12 @@
                     </div>
 
                     <label>
-                        <span class="label-with-icon">🔗 Paste Multiple URLs</span>
+                        <span class="label-with-icon"><strong>🔗 Paste Multiple URLs</strong></span>
                         <textarea id="bulk-urls" rows="8"
                             placeholder="https://www.youtube.com/watch?v=...&#10;https://www.instagram.com/p/...&#10;https://www.tiktok.com/@...&#10;&#10;(One URL per line, up to 100 URLs)"></textarea>
                         <span class="url-count" id="bulk-url-count"></span>
-                        <small class="hint-text">One URL per line • Supports: YouTube, Instagram, TikTok, Twitter,
-                            Facebook</small>
+                        <small class="hint-text">One URL per line • Supports YouTube, Instagram, TikTok, Twitter,
+                            Facebook • Up to 100 URLs</small>
                     </label>
 
                     <p class="hint">📋 Maximum 100 videos per batch. Options below apply to all videos.</p>
