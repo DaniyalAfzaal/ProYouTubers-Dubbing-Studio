@@ -119,19 +119,51 @@ CELL 5B:
 sh(r'''
 mkdir -p /root/proyoutubers-dubbing/apps/backend/model_config
 cat > /root/proyoutubers-dubbing/apps/backend/model_config/chatterbox.yaml << 'EOF'
+# ========================================================== YAML chatterbox configuration file ==================================
+languages:
+  - ar # Arabic
+  - da # Danish
+  - de # German
+  - el # Greek
+  - en # English
+  - es # Spanish
+  - fi # Finnish
+  - fr # French
+  - he # Hebrew
+  - hi # Hindi
+  - it # Italian
+  - ja # Japanese
+  - ko # Korean
+  - ms # Malay
+  - nl # Dutch
+  - no # Norwegian
+  - pl # Polish
+  - pt # Portuguese
+  - ru # Russian
+  - sv # Swedish
+  - sw # Swahili
+  - tr # Turkish
+  - zh # Chinese
+
+
+# Generation hyperparameters - MATCHING DEFAULT CONFIG
 params:
   generate:
-    guidance_scale: 3.5
-    temperature: 0.7
-    max_length: 1000
+    exaggeration: 0.5
+    cfg_weight: 0.5
+    temperature: 0.8
+    repetition_penalty: 2.0
+    min_p: 0.05
+    top_p: 1.0
+  log_level: INFO
 EOF
 ''')
 
-print("✅ Chatterbox TTS config created")
-print("🎯 This fixes:")
-print("  - TTS generating 62s for 30s segments")
-print("  - Audio timing mismatches")
-print("  - Robotic voice from time-stretching")
+print("✅ Chatterbox TTS config created (matching defaults)")
+print("🎯 This ensures:")
+print("  - Consistent TTS timing across all environments")
+print("  - Proper handling of fast-paced speech")
+print("  - No parameter mismatch between local and Modal")
 
 
 CELL 6:

@@ -52,6 +52,208 @@ from common_schemas.models import (
     TTSReviewRequest,
     TTSRegenerateRequest,
 )
+# ============================================================================
+# ROBUSTNESS IMPROVEMENTS: Language & Config Validation
+# ============================================================================
+
+def normalize_language_code(lang_code: str) -> str:
+    """
+    Normalize language codes for translation APIs.
+    
+    Translation services expect standard ISO 639-1 codes (zh, en, es),
+    but ASR may return variants (zh-CN, en-US) or ISO 639-3 codes (cmn, jpn).
+    This prevents translation failures from language code mismatches.
+    
+    Examples:
+        zh-CN → zh
+        en-US → en  
+        cmn → zh (Mandarin)
+        jpn → ja (Japanese)
+    
+    Args:
+        lang_code: Language code to normalize
+        
+    Returns:
+        Normalized language code
+    """
+    if not lang_code:
+        return lang_code
+    
+    # Remove region codes and underscores
+    base_lang = lang_code.split('-')[0].split('_')[0].lower().strip()
+    
+    # Map ISO 639-3 (3-letter) to ISO 639-1 (2-letter)
+    iso639_3_to_1 = {
+        'cmn': 'zh',  # Mandarin Chinese
+        'yue': 'zh',  # Cantonese
+        'jpn': 'ja',  # Japanese
+        'kor': 'ko',  # Korean
+        'fra': 'fr',  # French
+        'deu': 'de',  # German
+        'spa': 'es',  # Spanish
+        'por': 'pt',  # Portuguese
+        'rus': 'ru',  # Russian
+        'ara': 'ar',  # Arabic
+        'hin': 'hi',  # Hindi
+        'ita': 'it',  # Italian
+        'nld': 'nl',  # Dutch
+        'pol': 'pl',  # Polish
+        'swe': 'sv',  # Swedish
+        'tur': 'tr',  # Turkish
+    }
+    
+    normalized = iso639_3_to_1.get(base_lang, base_lang)
+    
+    if normalized != lang_code:
+        logger.debug(f"Normalized language code: {lang_code} → {normalized}")
+    
+    return normalized
+
+
+def validate_tts_config() -> None:
+    """
+    Validate TTS configuration has all required parameters.
+    
+    Missing parameters cause timing issues with fast-paced speech.
+    This catches config problems at startup before processing begins.
+    """
+    try:
+        chatterbox_cfg = load_yaml_config(
+            Path(__file__).parent.parent.parent / "model_config" / "chatterbox.yaml"
+        )
+    except Exception as e:
+        logger.warning(f"Could not load chatterbox.yaml for validation: {e}")
+        return
+    
+    required_params = {
+        'exaggeration', 'cfg_weight', 'temperature',
+        'repetition_penalty', 'min_p', 'top_p'
+    }
+    
+    generate_params = chatterbox_cfg.get('params', {}).get('generate', {})
+    missing = required_params - set(generate_params.keys())
+    
+    if missing:
+        logger.error("="*70)
+        logger.error("⚠️  TTS CONFIG VALIDATION FAILED")
+        logger.error(f"   Missing required parameters: {missing}")
+        logger.error("   This WILL cause timing issues with fast-paced speech!")
+        logger.error("   Please update: apps/backend/model_config/chatterbox.yaml")
+        logger.error("="*70)
+    else:
+        logger.info("✅ TTS config validation passed - all required parameters present")
+
+
+# ============================================================================
+# PHASE 2: Segment Duration Monitoring & Error Recovery
+# ============================================================================
+
+def log_segment_durations(
+    tts_segments: List,
+    translation_segments: List[Dict],
+    threshold_ratio: float = 1.3,
+    threshold_absolute: float = 2.0
+) -> int:
+    """
+    Monitor TTS segment durations and log warnings for timing issues.
+    
+    Fast-paced speech is sensitive to timing mismatches. This detects when
+    TTS generates audio that's too long, which causes cut/gibberish audio.
+    
+    Args:
+        tts_segments: List of TTS segment objects with audio_url
+        translation_segments: List of dicts with 'start', 'end', 'text'
+        threshold_ratio: Warn if actual/expected > this ratio (default 1.3 = 30% overrun)
+        threshold_absolute: Warn if overrun > this many seconds (default 2.0s)
+        
+    Returns:
+        Number of segments with timing issues
+    """
+    issues_found = 0
+    total_overrun = 0.0
+    
+    for i, (tts_seg, tr_seg) in enumerate(zip(tts_segments, translation_segments)):
+        expected = tr_seg['end'] - tr_seg['start']
+        actual = get_audio_duration(Path(tts_seg.audio_url))
+        overrun = actual - expected
+        ratio = actual / expected if expected > 0 else 0
+        
+        # Log if exceeds thresholds
+        if ratio > threshold_ratio or abs(overrun) > threshold_absolute:
+            logger.warning(
+                f"⚠️  Segment {i} timing issue: "
+                f"expected={expected:.2f}s, actual={actual:.2f}s, "
+                f"overrun={overrun:+.2f}s, ratio={ratio:.2f}x"
+            )
+            logger.warning(f"   Text: '{tr_seg['text'][:60]}...'")  
+            issues_found += 1
+            total_overrun += abs(overrun)
+    
+    if issues_found > 0:
+        avg_overrun = total_overrun / issues_found
+        logger.warning("="*70)
+        logger.warning(f"⚠️  TIMING ISSUES DETECTED: {issues_found} segments")
+        logger.warning(f"   Average overrun: {avg_overrun:.2f}s")
+        logger.warning("   Fast-paced speech may sound cut or garbled.")
+        logger.warning("   Consider adjusting TTS temperature or max_length.")
+        logger.warning("="*70)
+    else:
+        logger.info(f"✅ All {len(tts_segments)} segments within timing range")
+    
+    return issues_found
+
+
+from functools import wraps
+import asyncio
+
+def retry_on_failure(max_attempts: int = 3, delay: float = 2.0, backoff: float = 1.5):
+    """
+    Retry decorator for async functions that may fail transiently.
+    
+    Translation and TTS services can fail due to network issues, rate limits,
+    or temporary service unavailability. This automatically retries with
+    exponential backoff.
+    
+    Args:
+        max_attempts: Maximum number of retry attempts
+        delay: Initial delay in seconds before first retry
+        backoff: Multiplier for delay on each retry (exponential backoff)
+        
+    Example:
+        @retry_on_failure(max_attempts=3, delay=2.0)
+        async def translate_segments(...):
+            # Will retry up to 3 times with 2s, 3s, 4.5s delays
+    """
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            last_error = None
+            current_delay = delay
+            
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    last_error = e
+                    
+                    if attempt < max_attempts:
+                        logger.warning(
+                            f"⚠️  {func.__name__} failed (attempt {attempt}/{max_attempts}): {e}"
+                        )
+                        logger.warning(f"   Retrying in {current_delay:.1f}s...")
+                        await asyncio.sleep(current_delay)
+                        current_delay *= backoff
+                    else:
+                        logger.error(
+                            f"❌ {func.__name__} failed after {max_attempts} attempts: {e}"
+                        )
+            
+            raise last_error
+        return wrapper
+    return decorator
+
+# ============================================================================
+
 from common_schemas.utils import (
     alignerWrapper,
     attach_segment_audio_clips,
@@ -63,6 +265,7 @@ from media_processing.audio_processing import (
     overlay_on_background,
     trim_audio_with_vad,
 )
+from media_processing.audio_validation import validate_audio_quality, validate_segment_audio
 from media_processing.final_pass import final
 from media_processing.subtitles_handling import STYLE_PRESETS, build_subtitles_from_asr_result
 from preprocessing.media_separation import (
@@ -104,6 +307,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Validate TTS configuration at startup
+validate_tts_config()
+
 
 ASR_URL = "http://localhost:8001/v1/transcribe"
 TR_URL = "http://localhost:8002/v1/translate"
@@ -936,6 +1143,7 @@ async def align_asr_transcription(
     return ASRResponse(**response.json())
 
 
+@retry_on_failure(max_attempts=3, delay=2.0)
 async def translate_segments(
     client: httpx.AsyncClient,
     tr_model: str,
@@ -2022,7 +2230,33 @@ async def dub(
 
         asr_raw_path = workspace.maybe_dump_json("asr/asr_0_result.json", raw_asr_result.model_dump())
 
-        source_lang = raw_asr_result.language or source_lang
+        # FIX: Only use ASR detected language if user didn't provide one
+        # Don't override user's explicit language choice with ASR detection
+        if not source_lang:
+            source_lang = raw_asr_result.language
+            logger.info(f"Using ASR-detected language: {source_lang}")
+        elif raw_asr_result.language and raw_asr_result.language != source_lang:
+            # Language mismatch detected - warn but respect user choice
+            detected = raw_asr_result.language
+            user_choice = source_lang
+            
+            logger.warning("="*70)
+            logger.warning("⚠️  LANGUAGE MISMATCH DETECTED")
+            logger.warning(f"   User specified: '{user_choice}'")
+            logger.warning(f"   ASR detected:   '{detected}'")
+            logger.warning(f"   Using user's choice: '{user_choice}'")
+            logger.warning("   If dubbing fails, verify source language is correct.")
+            logger.warning("="*70)
+            
+            # Emit to frontend for visibility
+            emit_progress({
+                "type": "warning",
+                "message": f"Language mismatch: using '{user_choice}' (ASR detected '{detected}')"
+            })
+        
+        # Normalize language code for translation APIs
+        source_lang = normalize_language_code(source_lang)
+        
         
 
         if aligned_asr_result is None:
@@ -2242,6 +2476,16 @@ async def dub(
                 with step_timer.time(f"tts{lang_suffix}"):
                     tts_result = await synthesize_tts(client, tts_model_key, tr_result_local, lang, tts_output_dir)
                 
+                # PHASE 2: Monitor segment durations for timing issues
+                timing_issues = log_segment_durations(
+                    tts_result.segments,
+                    tr_result_local.model_dump()['segments']
+                )
+                if timing_issues > 0:
+                    emit_progress({
+                        "type": "warning",
+                        "message": f"{timing_issues} segments have timing issues - fast-paced speech may be affected"
+                    })
 
                 if involve_mode:
                     await run_tts_review_session(
