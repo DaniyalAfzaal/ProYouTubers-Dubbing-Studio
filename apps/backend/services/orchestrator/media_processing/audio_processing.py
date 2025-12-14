@@ -655,7 +655,17 @@ def concatenate_audio(segments, output_file, target_duration: Optional[float] = 
         final_duration = get_audio_duration(output_file)
         print(f"✅ Final duration: {final_duration:.3f}s (target: {target_duration:.3f}s)")
         
-        if final_duration - target_duration > 0.0:
+        # SPARSE SPEECH FIX: Don't stretch if audio is significantly shorter than target
+        # This happens when ASR creates huge segments that include silence/music
+        duration_ratio = final_duration / target_duration if target_duration > 0 else 1.0
+        is_sparse = duration_ratio < 0.5  # Audio is less than 50% of expected
+        
+        if is_sparse:
+            print(f"⚠️  SPARSE SPEECH DETECTED: Audio {final_duration:.1f}s vs target {target_duration:.1f}s")
+            print(f"   Ratio: {duration_ratio:.2f}x (< 0.5 threshold)")
+            print(f"   Keeping natural timing - NOT stretching to avoid robotic audio")
+            result = str(output_file)
+        elif final_duration - target_duration > 0.1:
             print(f"⚠️  Duration mismatch > 0.1s, applying final trim/pad...")
             result = rubberband_to_duration(str(output_file), target_duration * 1000, str(output_file))
         else:
@@ -667,7 +677,10 @@ def concatenate_audio(segments, output_file, target_duration: Optional[float] = 
         shutil.rmtree(stretch_temp_dir, ignore_errors=True)
     
     print("\n" + "="*60)
-    print("✅ CENTERING AND PADDING COMPLETE")
+    if is_sparse:
+        print("✅ CENTERING COMPLETE (SPARSE SPEECH - NATURAL TIMING)")
+    else:
+        print("✅ CENTERING AND PADDING COMPLETE")
     print("="*60)
 
     return result, translation_segments
