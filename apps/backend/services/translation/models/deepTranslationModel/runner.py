@@ -31,9 +31,10 @@ def build_translator(req: TranslateRequest, logger: logging.Logger) -> Any:
     # Map provider names to translator classes
     translators = {
         "google": GoogleTranslator,
+        "googletranslator": GoogleTranslator,  # ADD: Support alternate name
+        "deep_translator": GoogleTranslator,  # FIX: This is the default/Google provider name!
         "deepl": DeeplTranslator,
-        "deepltranslator": DeeplTranslator,  # ADD: Support 'DeeplTranslator' name from UI
-        "deep_translator": DeeplTranslator,  # ADD: Support 'deep_translator' name
+        "deepltranslator": DeeplTranslator,  # ADD: Support 'DeeplTranslator' UI name
         "microsoft": MicrosoftTranslator,
         "chatgpt": ChatGptTranslator,
         "pons": PonsTranslator,
@@ -70,8 +71,8 @@ def build_translator(req: TranslateRequest, logger: logging.Logger) -> Any:
     
     logger.info(f"Extracted language codes: source={source_lang}, target={target_lang}")
     
-    # FIX: Normalize language codes for DeepL BEFORE setting kwargs
-    if provider in ["deepl", "deepltranslator", "deep_translator"]:
+    # FIX: Normalize language codes ONLY for DeepL (not Google/deep_translator)
+    if provider in ["deepl", "deepltranslator"]:
         source_lang = normalize_lang_code(source_lang)
         target_lang = normalize_lang_code(target_lang)
         logger.info(f"Normalized for DeepL: {req.source_lang} → {source_lang}, {req.target_lang} → {target_lang}")
@@ -82,7 +83,7 @@ def build_translator(req: TranslateRequest, logger: logging.Logger) -> Any:
     kwargs.setdefault("target", target_lang)
 
     # Optionally source API keys from env if not provided
-    if provider in ["deepl", "deepltranslator", "deep_translator"]:
+    if provider in ["deepl", "deepltranslator"]:
         api_key = os.getenv("DEEPL_API_KEY")
         if api_key:
             kwargs.setdefault("api_key", api_key)
