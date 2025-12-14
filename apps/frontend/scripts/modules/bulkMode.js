@@ -408,8 +408,13 @@ export const bulkMode = {
 
             item.className = `video-item ${video.status}`;
 
+            // Truncate long filenames with tooltip
+            const displayName = video.name.length > 50 ?
+                video.name.substring(0, 47) + '...' :
+                video.name;
+
             let content = `
-                <h4>${this.escapeHtml(video.name)}</h4>
+                <h4 title="${this.escapeHtml(video.name)}">${this.escapeHtml(displayName)}</h4>
                 <span class="status">${video.status}</span>
             `;
 
