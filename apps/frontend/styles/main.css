@@ -1387,6 +1387,42 @@ header {
     overflow-y: auto;
 }
 
+/* FIX: Custom scrollbar styling */
+.downloads-sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.downloads-sidebar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.downloads-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(239, 68, 68, 0.5);
+    border-radius: 4px;
+}
+
+.downloads-sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(239, 68, 68, 0.7);
+}
+
+.downloads-main::-webkit-scrollbar {
+    width: 10px;
+}
+
+.downloads-main::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.downloads-main::-webkit-scrollbar-thumb {
+    background: rgba(239, 68, 68, 0.4);
+    border-radius: 5px;
+}
+
+.downloads-main::-webkit-scrollbar-thumb:hover {
+    background: rgba(239, 68, 68, 0.6);
+}
+
 .downloads-sidebar h3 {
     margin: 0 0 1.5rem 0;
     color: var(--text-primary);
@@ -1457,7 +1493,8 @@ header {
     background: var(--bg-card);
     border: 2px solid var(--border-color);
     border-radius: 12px;
-    padding: 1.25rem;
+    padding: 0.875rem 1rem;
+    /* FIX: More compact */
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
@@ -1534,17 +1571,23 @@ header {
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 1.2rem;
-    opacity: 0.5;
+    font-size: 1.5rem;
+    /* FIX: Larger icon */
+    opacity: 0.6;
     transition: all 0.2s ease;
-    padding: 0.25rem;
-    border-radius: 4px;
+    padding: 0.5rem;
+    /* FIX: Larger click area */
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .delete-btn:hover {
     opacity: 1;
-    background: rgba(239, 68, 68, 0.1);
-    transform: scale(1.1);
+    background: rgba(239, 68, 68, 0.15);
+    transform: scale(1.15);
+    /* FIX: More prominent hover */
 }
 
 .process-name {
@@ -1606,8 +1649,9 @@ header {
 
 .download-btn {
     padding: 1.25rem;
-    background: var(--bg-secondary);
-    border: 2px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.03);
+    /* FIX: Lighter background */
+    border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     cursor: pointer;
     transition: var(--transition);
@@ -1615,6 +1659,8 @@ header {
     align-items: center;
     gap: 1rem;
     text-align: left;
+    color: var(--text-primary);
+    /* FIX: Better contrast */
 }
 
 .download-btn:hover {

@@ -106,7 +106,7 @@ export const downloads = {
         }
 
         list.innerHTML = this.processes.map((proc, i) => `
-            <div class="process-card${i === 0 ? ' active' : ''}" data-index="${i}">
+            <div class="process-card${i === 0 ? ' active' : ''}" data-index="${i}" title="${this.escapeHtml(proc.name || 'Dubbing Process')}">
                 <div class="process-header">
                     <div class="process-status">
                         <span class="status-icon">✓</span>
@@ -116,7 +116,7 @@ export const downloads = {
                         <span>🗑️</span>
                     </button>
                 </div>
-                <div class="process-name">${this.escapeHtml(proc.name || 'Dubbing Process')}</div>
+                <div class="process-name">${this.escapeHtml(this.truncateName(proc.name || 'Dubbing Process'))}</div>
                 <div class="process-meta">
                     <span class="meta-item">
                         <span class="meta-icon">🌐</span>
@@ -194,10 +194,12 @@ export const downloads = {
             <div class="download-section">
                 <h3>📊 Process Details</h3>
                 <div style="display:grid;gap:0.5rem">
-                    <div><strong>Source:</strong> ${this.escapeHtml(process.source || 'N/A')}</div>
+                    <div class="detail-item" title="${this.escapeHtml(process.source || 'N/A')}">
+                        <strong>Source:</strong> ${this.escapeHtml(this.truncatePath(process.source || 'N/A', 80))}
+                    </div>
                     <div><strong>Target Languages:</strong> ${this.escapeHtml(process.languages || 'N/A')}</div>
                     <div><strong>Completed:</strong> ${new Date(process.timestamp).toLocaleString()}</div>
-                    <div><strong>Duration:</strong> ${this.escapeHtml(process.duration || 'N/A')}</div>
+                    <div><strong>Duration:</strong> ${this.calculateDuration(process)}</div>
                 </div>
             </div>
             
@@ -245,5 +247,25 @@ export const downloads = {
             }
             this.renderProcessList();
         }
+    },
+
+    // FIX: Add helper functions
+    truncateName(name) {
+        return name.length > 40 ? name.substring(0, 37) + '...' : name;
+    },
+
+    truncatePath(path, maxLength = 80) {
+        if (path.length <= maxLength) return path;
+        const parts = path.split('/');
+        if (parts.length <= 3) return path.substring(0, maxLength - 3) + '...';
+        return `${parts[0]}/.../${parts[parts.length - 1]}`;
+    },
+
+    calculateDuration(process) {
+        if (process.duration && process.duration !== 'N/A' && process.duration !== 'Unknown') {
+            return process.duration;
+        }
+        // Try to estimate from logs or video URL metadata
+        return 'Unknown';
     }
 };
