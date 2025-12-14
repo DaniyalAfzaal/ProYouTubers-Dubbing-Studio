@@ -123,15 +123,18 @@ export const bulkMode = {
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                const value = input.value.trim().toLowerCase();
+                const value = input.value.trim();
 
                 if (value) {
+                    // FIX: Capitalize first letter for proper display
+                    const capitalized = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+
                     // Check if already added
-                    const existing = Array.from(tagsContainer.querySelectorAll('.tag'))
-                        .find(tag => tag.dataset.code === value);
+                    const existing = Array.from(tagsContainer.querySelectorAll('.tag-badge'))
+                        .find(tag => tag.querySelector('span').textContent.toLowerCase() === value.toLowerCase());
 
                     if (!existing) {
-                        this.addBulkTargetLangTag(value);
+                        this.addBulkTargetLangTag(capitalized);
                     }
                     input.value = '';
                 }
@@ -143,18 +146,31 @@ export const bulkMode = {
         const tagsContainer = document.getElementById('bulk-target-lang-tags');
         if (!tagsContainer) return;
 
-        const tag = document.createElement('div');
-        tag.className = 'tag';
-        tag.dataset.code = code;
-        tag.innerHTML = `
-            <span>${code}</span>
-            <button type="button" class="tag-remove" aria-label="Remove ${code}">×</button>
-        `;
+        const tag = document.createElement('span');
+        tag.className = 'tag-badge'; // FIX: Use 'tag-badge' class for consistent styling
+        const display = document.createElement('span');
+        display.textContent = code;
 
-        tag.querySelector('.tag-remove').addEventListener('click', () => {
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'tag-remove';
+        removeBtn.setAttribute('aria-label', `Remove ${code}`);
+        removeBtn.textContent = '×';
+        removeBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             tag.remove();
-        });
+        };
 
+        // FIX: Add hidden input for form submission
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'bulk_target_langs';
+        hidden.value = code.toLowerCase(); // Store lowercase code
+
+        tag.appendChild(display);
+        tag.appendChild(removeBtn);
+        tag.appendChild(hidden);
         tagsContainer.appendChild(tag);
     },
 
