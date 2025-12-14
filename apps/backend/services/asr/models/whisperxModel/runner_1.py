@@ -50,13 +50,14 @@ if __name__ == "__main__":
 
             device = extra.get("device") or os.getenv("WHISPERX_DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
             
-            # Verify CUDA is actually accessible (subprocess may not have GPU access)
-            if device == "cuda":
+            # FIX: Properly initialize CUDA in subprocess
+            if device == "cuda" and torch.cuda.is_available():
                 try:
-                    torch.cuda.current_device()
-                    logger.info("CUDA device verified for alignment.")
-                except RuntimeError:
-                    logger.warning("CUDA not accessible in alignment subprocess, falling back to CPU")
+                    # Initialize CUDA context by creating a test tensor
+                    _ = torch.zeros(1).cuda()
+                    logger.info(f"✅ CUDA initialized successfully on device {torch.cuda.get_device_name(0)}")
+                except (RuntimeError, AssertionError) as e:
+                    logger.warning(f"⚠️ CUDA initialization failed: {e}. Falling back to CPU")
                     device = "cpu"
             
             if device == "cpu":
