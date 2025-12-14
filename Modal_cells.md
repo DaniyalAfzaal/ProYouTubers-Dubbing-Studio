@@ -175,60 +175,6 @@ print("Backend services starting…")
 
 
 CELL 8:
-# Write nginx config.  Runs as root for file access, 500MB uploads, 10m proxy timeouts.
-sh(r'''
-cat > /tmp/nginx.conf <<'NG'
-user root;
-worker_processes 1;
-events { worker_connections 1024; }
-http {
-  client_max_body_size 500m;
-  include       /etc/nginx/mime.types;
-  default_type  application/octet-stream;
-  sendfile on;
-  server {
-    listen 5173;
-    server_name _;
-    root /root/proyoutubers-dubbing/apps/frontend;
-    index index.html;
-
-    location = /options {
-      proxy_pass http://127.0.0.1:8000/api/options;
-      proxy_set_header Host $host;
-      proxy_connect_timeout 600s;
-      proxy_read_timeout    600s;
-      proxy_send_timeout    600s;
-    }
-
-    location /api/ {
-      proxy_pass http://127.0.0.1:8000;
-      proxy_set_header Host $host;
-      proxy_connect_timeout 600s;
-      proxy_read_timeout    600s;
-      proxy_send_timeout    600s;
-    }
-
-    location /api/download/ {
-      proxy_pass http://127.0.0.1:8000;
-      proxy_set_header Host $host;
-      proxy_connect_timeout 600s;
-      proxy_read_timeout 1800s;    # 30 min for large videos
-      proxy_send_timeout 1800s;
-      proxy_buffering off;         # Stream directly
-      proxy_request_buffering off;
-    }
-
-    location / {
-      try_files $uri $uri/ /index.html;
-    }
-  }
-}
-NG
-''')
-
-# Start nginx
-sh('nohup nginx -c /tmp/nginx.conf -g "daemon off;" > /tmp/nginx.log 2>&1 &')
-print("Nginx launched.")
 
 
 CELL 9:
