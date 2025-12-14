@@ -1,5 +1,5 @@
-from __future__ import annotations
-import json, subprocess, sys
+from __name__ import annotations
+import json, subprocess, sys, os  # FIX: Added os import
 import shutil
 from typing import Type, TypeVar
 from pydantic import BaseModel
@@ -32,6 +32,7 @@ def call_worker(model_key: str, payload: BaseModel, out_model: type[T], runner_i
         cwd=str(cwd),
         check=False,
         text=True,
+        env=dict(os.environ),  # FIX: Pass environment variables including CUDA_VISIBLE_DEVICES
     )
 
     if proc.returncode != 0:
