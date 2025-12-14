@@ -16,7 +16,7 @@ from common_schemas.models import ASRRequest, ASRResponse
 def test_call_worker_for_registered_models(monkeypatch, model_key):
     payload = ASRRequest(audio_url="dummy.wav")
 
-    def fake_run(cmd, input, stdout, stderr, cwd, check, text):  # noqa: ANN001
+    def fake_run(cmd, input, stdout, stderr, cwd, check, text, env=None):  # noqa: ANN001
         assert isinstance(cmd, list)
         return type(
             "Proc",
