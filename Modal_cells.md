@@ -23,10 +23,9 @@ proyoutubers_image = (
         'git','make','ffmpeg','rubberband-cli','libsndfile1',
         'openjdk-17-jre-headless','ca-certificates','curl',
         'espeak-ng','sox','libsox-fmt-all','nginx',
-        'build-essential','python3-dev','clang'  # Compiler tools for building C extensions
+        'build-essential','python3-dev','clang'
     )
     .pip_install('uv>=0.5.0')
-    # Install PyTorch with CUDA 12.1 support
     .run_commands(
         'pip install torch==2.5.0 torchaudio==2.5.0 --index-url https://download.pytorch.org/whl/cu121',
         'python -c "import torch; print(f\\"PyTorch {torch.__version__} with CUDA {torch.version.cuda}\\")"'
@@ -37,9 +36,7 @@ proyoutubers_image = (
 HF_TOKEN = 'hf_REDACTED_FOR_SECURITY'
 hf_secret = modal.Secret.from_dict({'HF_TOKEN': HF_TOKEN})
 
-# DeepL API key (optional - for better translation quality)
-# Get your free API key from: https://www.deepl.com/pro-api
-# Leave empty to use free Google Translator instead
+# DeepL API key (optional)
 DEEPL_API_KEY = ''  # Optional: Add your DeepL API key here
 deepl_secret = modal.Secret.from_dict({'DEEPL_API_KEY': DEEPL_API_KEY}) if DEEPL_API_KEY else None
 
@@ -51,12 +48,10 @@ else:
 
 
 CELL 3:
-# GPU configuration - Customize GPU type and timeouts
 # GPU type hardcoded to L4 for optimal performance
 GPU_TYPE = "L4"
 
 with modal.enable_output():
-    # Build secrets list - add DeepL if configured
     secrets_list = [hf_secret]
     if deepl_secret:
         secrets_list.append(deepl_secret)
@@ -65,18 +60,18 @@ with modal.enable_output():
         'bash','-lc','sleep infinity',
         app=app,
         image=proyoutubers_image,
-        secrets=secrets_list,  # Dynamic secrets list
-        encrypted_ports=[8000, 5173],  # orchestrator and UI
-        volumes={"/persistent-outputs": outputs_volume},  # 🆕 Persistent storage
-        cpu=4,           # Reduced CPU (GPU handles heavy compute)
-        memory=24576,    # 24 GiB RAM for GPU model loading
-        gpu=GPU_TYPE,    # Customizable GPU type
-        timeout=3*60*60,     # 3h max lifetime
-        idle_timeout=3*60,   # 3min idle timeout (cost savings!)
+        secrets=secrets_list,
+        encrypted_ports=[8000, 5173],
+        volumes={"/persistent-outputs": outputs_volume},
+        cpu=4,
+        memory=24576,
+        gpu=GPU_TYPE,
+        timeout=3*60*60,
+        idle_timeout=30*60,
         verbose=True,
     )
 print(f"Sandbox created with {GPU_TYPE} GPU + persistent volume:", sb.object_id)
-print("⚡ Idle timeout: 3 minutes - GPU auto-releases for cost savings")
+print("⚡ Idle timeout: 30 minutes - GPU auto-releases for cost savings")
 
 
 CELL 4:
@@ -95,14 +90,11 @@ CELL 5:
 # Clone ProYouTubers Dubbing Studio repository
 REPO_URL = 'https://github.com/DaniyalAfzaal/ProYouTubers-Dubbing-Studio.git'
 
-# Clone the latest version
 sh(f'cd /root && rm -rf proyoutubers-dubbing && git clone --depth 1 {REPO_URL} proyoutubers-dubbing')
 
-# Copy .env.example -> .env and inject your HF_TOKEN
 sh(r'''
 cd /root/proyoutubers-dubbing
 cp -f .env.example .env
-# Replace HF_TOKEN=... in .env with the secret from Modal (available via $HF_TOKEN)
 sed -i "s/^HF_TOKEN=.*/HF_TOKEN=$HF_TOKEN/" .env
 ''')
 
@@ -151,31 +143,71 @@ print("Dependencies installed.")
 print("\n" + "="*60)
 print("Verifying GPU configuration...")
 print("="*60)
-sh(r'''
-cd /root/proyoutubers-dubbing
-python3 -c "
-import torch
-print(f'✅ PyTorch {torch.__version__}')
-print(f'   CUDA available: {torch.cuda.is_available()}')
-if torch.cuda.is_available():
-    print(f'   CUDA version: {torch.version.cuda}')
-    print(f'   GPU count: {torch.cuda.device_count()}')
-    print(f'   GPU 0: {torch.cuda.get_device_name(0)}')
-    print(f'   GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB')
-else:
-    print('   ⚠️  WARNING: CUDA not available!')
-"
-''')
-''')
+sh('cd /root/proyoutubers-dubbing && python3 -c "import torch; print(f\'PyTorch {torch.__version__}\'); print(f\'CUDA available: {torch.cuda.is_available()}\')"')
 
 
 CELL 7:
-# Start services without reload.  The Makefile uses $(RELOAD) so override it to empty.
+# Start services without reload
 sh('cd /root/proyoutubers-dubbing && nohup make RELOAD= stack-up > /tmp/stack.log 2>&1 &')
 print("Backend services starting…")
 
 
 CELL 8:
+# Write nginx config and start nginx
+sh(r'''
+cat > /tmp/nginx.conf <<'NG'
+user root;
+worker_processes 1;
+events { worker_connections 1024; }
+http {
+  client_max_body_size 500m;
+  include       /etc/nginx/mime.types;
+  default_type  application/octet-stream;
+  sendfile on;
+  server {
+    listen 5173;
+    server_name _;
+    root /root/proyoutubers-dubbing/apps/frontend;
+    index index.html;
+
+    location = /options {
+      proxy_pass http://127.0.0.1:8000/api/options;
+      proxy_set_header Host $host;
+      proxy_connect_timeout 600s;
+      proxy_read_timeout    600s;
+      proxy_send_timeout    600s;
+    }
+
+    location /api/ {
+      proxy_pass http://127.0.0.1:8000;
+      proxy_set_header Host $host;
+      proxy_connect_timeout 600s;
+      proxy_read_timeout    600s;
+      proxy_send_timeout    600s;
+    }
+
+    location /api/download/ {
+      proxy_pass http://127.0.0.1:8000;
+      proxy_set_header Host $host;
+      proxy_connect_timeout 600s;
+      proxy_read_timeout 1800s;
+      proxy_send_timeout 1800s;
+      proxy_buffering off;
+      proxy_request_buffering off;
+    }
+
+    location / {
+      try_files $uri $uri/ /index.html;
+    }
+  }
+}
+NG
+
+nohup nginx -c /tmp/nginx.conf -g "daemon off;" > /tmp/nginx.log 2>&1 &
+sleep 2
+''')
+
+print("Nginx launched.")
 
 
 CELL 9:
