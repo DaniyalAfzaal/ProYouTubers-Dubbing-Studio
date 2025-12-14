@@ -52,8 +52,8 @@ else:
 
 CELL 3:
 # GPU configuration - Customize GPU type and timeouts
-# Available GPU types: "T4", "L4", "A10G", "A100" (check Modal pricing for costs)
-GPU_TYPE = "L4"  # Change to "T4" for cheaper, "A100" for faster
+# GPU type hardcoded to L4 for optimal performance
+GPU_TYPE = "L4"
 
 with modal.enable_output():
     # Build secrets list - add DeepL if configured
@@ -165,6 +165,7 @@ if torch.cuda.is_available():
 else:
     print('   ⚠️  WARNING: CUDA not available!')
 "
+''')
 ''')
 
 
