@@ -273,8 +273,10 @@ export const bulkMode = {
         try {
             // Disable submit button
             const submitBtn = document.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Starting batch...';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '⏳ Starting batch...';
+            }
 
             const response = await fetch('/api/jobs/bulk-run', {
                 method: 'POST',
@@ -314,11 +316,7 @@ export const bulkMode = {
         } catch (error) {
             console.error('Failed to start bulk dubbing:', error);
 
-            // Safe DOM access - check if element exists
-            const statusEl = document.querySelector('.bulk-status');
-            if (statusEl) {
-                statusEl.textContent = 'Failed to start';
-            }
+
 
             toast.error(`Failed to start bulk dubbing: ${error.message}`);
 
