@@ -121,18 +121,21 @@ def validate_tts_config() -> None:
         # Load and validate chatterbox config
         chatterbox_config_path = Path(__file__).parent.parent.parent / "model_config" / "chatterbox.yaml"
         
-        if chatterbox_config_path.exists():
-            with open(chatterbox_config_path, 'r') as f:
-                chatterbox_cfg = yaml.safe_load(f)
-            
-            # Validate required fields
-            required_fields = ['model_name', 'sample_rate']
-            missing_fields = [field for field in required_fields if field not in chatterbox_cfg]
-            
-            if missing_fields:
-                logger.warning(f"Chatterbox config missing fields: {missing_fields}")
-        else:
+        if not chatterbox_config_path.exists():
             logger.warning(f"Chatterbox config not found at: {chatterbox_config_path}")
+            return
+            
+        with open(chatterbox_config_path, 'r') as f:
+            chatterbox_cfg = yaml.safe_load(f)
+        
+        # Validate required fields
+        required_fields = ['model_name', 'sample_rate']
+        missing_fields = [field for field in required_fields if field not in chatterbox_cfg]
+        
+        if missing_fields:
+            logger.warning(f"Chatterbox config missing fields: {missing_fields}")
+            return
+            
     except Exception as e:
         logger.warning(f"Could not load chatterbox.yaml for validation: {e}")
         return
