@@ -51,17 +51,40 @@ def validate_speed_ratio(ratio: float) -> float:
 # ============================================================
 
 def get_audio_duration(audio_path: Union[str, Path]) -> float:
-    """Get duration of audio file in seconds."""
+    """
+    Get duration of audio/video file in seconds.
+    Uses soundfile for audio, falls back to ffprobe for video formats.
+    """
     audio_path = Path(audio_path)
     if not audio_path.exists():
         raise FileNotFoundError(f"Audio file not found: {audio_path}")
     
     try:
+        # Try soundfile first (faster for audio files)
         info = sf.info(str(audio_path))
         return float(info.duration)
-    except Exception as e:
-        logger.error(f"Failed to get audio duration for {audio_path}: {e}")
-        raise
+    except Exception as sf_error:
+        # Fallback to ffprobe for video files or unsupported formats
+        try:
+            result = subprocess.run(
+                [
+                    'ffprobe',
+                    '-v', 'error',
+                    '-show_entries', 'format=duration',
+                    '-of', 'default=noprint_wrappers=1:nokey=1',
+                    str(audio_path)
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=10
+            )
+            return float(result.stdout.strip())
+        except Exception as ffprobe_error:
+            logger.error(f"Failed to get duration for {audio_path}")
+            logger.error(f"  soundfile error: {sf_error}")
+            logger.error(f"  ffprobe error: {ffprobe_error}")
+            raise
 
 
 def rubberband_to_duration(in_wav, target_ms, out_wav):
