@@ -385,7 +385,6 @@ const handlers = {
         }).catch(err => {
           console.error('Could not save failed job:', err);
         });
-
         if (eventSource) eventSource.close();
       },
 
@@ -397,7 +396,9 @@ const handlers = {
         ttsReview.hide();
         state.runId = "";
         // FIX Issue #2: Close EventSource on stream completion
-        if (eventSource) eventSource.close();
+        if (typeof eventSource !== 'undefined' && eventSource) {
+          eventSource.close();
+        }
       }
     };
 
