@@ -1988,7 +1988,7 @@ async def pipeline_run(
         
         logger.info(f"Starting dubbing job with run_id: {run_id}")
         
-        task = asyncio.create_task(run_dubbing_pipeline())
+        task = asyncio.create_task(run_pipeline())
         ACTIVE_JOBS[run_id] = task
         
         # FIX Issue #5: Cleanup ACTIVE_JOBS after completion
@@ -3123,6 +3123,9 @@ async def bulk_run(
     
     if not videos or len(videos) > 100:
         raise HTTPException(400, "No valid videos or max 100 exceeded")
+    
+    # Initialize temp files tracking
+    temp_files_to_track = []
     
     batch_id = str(uuid.uuid4())
     job = BulkJob(
