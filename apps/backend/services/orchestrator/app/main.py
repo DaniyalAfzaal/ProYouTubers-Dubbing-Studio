@@ -1976,27 +1976,58 @@ async def pipeline_run(
                 PROGRESS_REPORTER.reset(token)
                 await queue.put({"type": "complete"})
 
-        async def event_stream():
-            task = asyncio.create_task(run_pipeline())
-            ACTIVE_JOBS[run_id] = task
+        run_id = str(uuid.uuid4()) if not run_id else run_id # Use the run_id from form data if provided, otherwise generate a new one
+    
+        # FIX Issue #6: Check for duplicate run_id
+        if run_id in ACTIVE_JOBS:
+            existing_task = ACTIVE_JOBS[run_id]
+            if not existing_task.done():
+                raise HTTPException(409, f"Job {run_id} is already running. Please wait or use a different run_id.")
+            # Clean up completed job
+            ACTIVE_JOBS.pop(run_id, None)
+        
+        logger.info(f"Starting dubbing job with run_id: {run_id}")
+        
+        task = asyncio.create_task(run_dubbing_pipeline())
+        ACTIVE_JOBS[run_id] = task
+        
+        # FIX Issue #5: Cleanup ACTIVE_JOBS after completion
+        async def cleanup_after_completion():
             try:
-                while True:
-                    event = await queue.get()
-                    yield f"data: {json.dumps(event)}\n\n"
-                    if event.get("type") == "complete":
-                        break
+                await task
+            except Exception:
+                pass  # Error already logged in pipeline
             finally:
                 ACTIVE_JOBS.pop(run_id, None)
                 if not task.done():
                     task.cancel()
                 try:
                     await task
-                except asyncio.CancelledError:
-                    pass
-                except Exception:
-                    logger.exception("Pipeline task raised after completion", exc_info=True)
-
         return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.post(f"{API_PREFIX}/jobs/cancel/{{run_id}}")
+async def cancel_job(run_id: str):
+    """
+    FIX Issue #4: Cancel a running single mode job.
+    Cancels the task and cleans up ACTIVE_JOBS.
+    """
+    task = ACTIVE_JOBS.get(run_id)
+    if not task:
+        raise HTTPException(404, "Job not found")
+    
+    if task.done():
+        # Already completed, just cleanup
+        ACTIVE_JOBS.pop(run_id, None)
+        logger.info(f"Job {run_id} already completed, cleaned up")
+        return {"status": "already_completed", "run_id": run_id}
+    
+    # Cancel the task
+    task.cancel()
+    ACTIVE_JOBS.pop(run_id, None)
+    logger.info(f"Cancelled job {run_id}")
+    
+    return {"status": "cancelled", "run_id": run_id}
 
 
 @app.post("/v1/dub")
