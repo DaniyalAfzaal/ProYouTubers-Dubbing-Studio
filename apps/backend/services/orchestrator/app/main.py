@@ -1999,11 +1999,12 @@ async def pipeline_run(
                 pass  # Error already logged in pipeline
             finally:
                 ACTIVE_JOBS.pop(run_id, None)
-                if not task.done():
-                    task.cancel()
-                try:
-                    await task
-        return StreamingResponse(event_stream(), media_type="text/event-stream")
+                logger.debug(f"Cleaned up ACTIVE_JOBS for run_id: {run_id}")
+        
+        # Run cleanup in background
+        asyncio.create_task(cleanup_after_completion())
+
+        async def event_stream():
 
 
 @app.post(f"{API_PREFIX}/jobs/cancel/{{run_id}}")
