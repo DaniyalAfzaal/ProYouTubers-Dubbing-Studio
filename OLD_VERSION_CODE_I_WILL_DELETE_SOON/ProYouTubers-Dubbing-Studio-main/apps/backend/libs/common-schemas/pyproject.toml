@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "common-schemas"
+version = "0.1.0"
+description = "Shared pydantic models"
+requires-python = ">=3.11"
+dependencies = [
+    "jieba>=0.42.1",
+    "konlpy>=0.6.0",
+    "mecab-python3>=1.0.10",
+    "pydantic>=2.11.9",
+    "sentencepiece>=0.2.1",
+    "simalign>=0.4",
+    "pyyaml>=6.0",
+    "unidic-lite>=1.0.8",
+]
+
+[tool.setuptools.packages.find]
+include = ["common_schemas"]

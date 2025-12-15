@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Cache
+apps/backend/cache/
+apps/backend/models_cache/
+*.cache
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Node modules
+node_modules/
+package-lock.json
+
+# Modal
+.modal/
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Large files
+*.bin
+*.pth
+*.pt
+*.onnx
+*.ckpt
+
+# Test outputs
+test_outputs/
+outputs/

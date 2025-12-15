@@ -1,0 +1,36 @@
+# main config parameters
+TRANSLATION_STRATEGIES:
+  - "default"
+  - "short"
+  - "long_proportional"
+  - "long_sophisticated"
+  - "long_sophisticated_merging"
+
+DUBBING_STRATEGIES:
+  - "default"
+  - "translation_over"
+  - "full_replacement" 
+
+log_level: INFO
+transcript_tolerance: 0.25
+vocal_only_for_transcription: true # whether to preprocess audio to keep only vocal parts for transcription or just use raw audio
+
+concatenation:
+  alpha: 0.25
+  min_dur: 0.4
+
+overlay_on_background:
+  ducking_db: 0.0
+
+finalize_media:
+  ducking_db: 0.02
+
+default_models:
+  asr: "whisperx"
+  tr: "deep_translator"
+  tts: "chatterbox"
+  sep: "melband_roformer_big_beta5e.ckpt"
+
+prompt_attachment:
+  min_duration: 1.0
+  max_duration: 40.0

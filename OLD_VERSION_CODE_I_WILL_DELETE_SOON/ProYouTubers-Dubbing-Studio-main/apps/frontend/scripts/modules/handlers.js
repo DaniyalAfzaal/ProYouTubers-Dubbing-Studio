@@ -28,12 +28,6 @@ const handlers = {
     const subtitleStyle = document.getElementById("subtitle-style");
     const languageList = document.getElementById("language-list");
 
-    // FIX Bug #11: Add null checks for all elements
-    if (!asrSelect || !trSelect || !ttsSelect || !sepSelect) {
-      console.error('Required form elements not found');
-      return;
-    }
-
     state.asrModels = opts.asr_models || [];
     state.translationModels = opts.translation_models || [];
     state.ttsModels = opts.tts_models || [];
@@ -50,7 +44,6 @@ const handlers = {
     models.refresh(trSelect, state.translationModels, initTargetCode);
     models.refresh(ttsSelect, state.ttsModels, initTargetCode);
 
-    // Safe to use sepSelect now
     opts.audio_separation_models.forEach(group => {
       const optGroup = document.createElement("optgroup");
       optGroup.label = group.architecture;
@@ -208,21 +201,17 @@ const handlers = {
             const firstLang = langs[0];
             const langData = event.result.languages[firstLang];
 
-            // FIX: Construct proper download URLs from workspace_id
-            const workspaceId = event.result?.workspace_id;
-            if (workspaceId) {
-              downloads.saveProcess({
-                name: state.sourceDescriptor || 'Dubbing Process',
-                timestamp: Date.now(),
-                source: state.sourceDescriptor,
-                languages: langs.join(', '),
-                videoUrl: `/api/download/${workspaceId}/dubbed_video_${firstLang}.mp4`,
-                audioUrl: `/api/download/${workspaceId}/final_dubbed_audio_${firstLang}.wav`,  // FIX: Correct file name
-                rawAudioUrl: `/api/download/${workspaceId}/dubbed_speech_track_${firstLang}.wav`,  // FIX: Correct file name
-                duration: langData?.duration || 'Unknown',
-                logs: `Pipeline completed successfully for ${langs.join(', ')}`
-              });
-            }
+            downloads.saveProcess({
+              name: state.sourceDescriptor || 'Dubbing Process',
+              timestamp: Date.now(),
+              source: state.sourceDescriptor,
+              languages: langs.join(', '),
+              videoUrl: langData?.video_url,
+              audioUrl: langData?.dubbed_audio_url,
+              rawAudioUrl: langData?.raw_audio_url,
+              duration: langData?.duration || 'Unknown',
+              logs: `Pipeline completed successfully for ${langs.join(', ')}`
+            });
           }
         }).catch(err => console.error('Failed to save to downloads:', err));
       },
@@ -358,18 +347,6 @@ const handlers = {
     }
 
     const formData = new FormData(el.form);
-    const files1 = el.fileInput?.files;
-    const url1 = el.videoLink?.value?.trim();
-
-    // FIX: Only validate single mode fields when in single mode
-    const mode = document.querySelector('[name="processing-mode"]:checked')?.value;
-    const isSingleMode = mode !== 'bulk';
-
-    if (isSingleMode && (!files1 || files1.length === 0) && !url1) {
-      ui.log("⚠️ Provide a media file or a video link.");
-      ui.setStatus("Error", "error");
-      return;
-    }
     linkValue = el.videoLink.value.trim();
     const cachedToken = el.reuseToken?.value.trim() || "";
 
@@ -409,8 +386,7 @@ const handlers = {
 
     formData.set("audio_sep", document.getElementById("audio-sep").checked ? "true" : "false");
     formData.set("perform_vad_trimming", document.getElementById("vad-trim").checked ? "true" : "false");
-    formData.set("sophisticated_dub_timing", document.getElementById("toggle-sophisticated-dub-timing").checked ? "true" : "false");
-    formData.set("strict_segment_timing", document.getElementById("toggle-strict-segment-timing").checked ? "true" : "false");
+    formData.set("sophisticated_dub_timing", document.getElementById("sophisticated-timing").checked ? "true" : "false");
     formData.set("persist_intermediate", document.getElementById("persist-intermediate").checked ? "true" : "false");
     formData.set("involve_mode", state.involveMode ? "true" : "false");
 
