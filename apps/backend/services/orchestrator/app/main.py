@@ -359,8 +359,12 @@ TRANSCRIPTION_SEGMENT_TOLERANCE = general_cfg.get("transcript_tolerance", 0.25)
 
 # GPU Resource Management: Limit concurrent pipelines to prevent OOM
 # L4 GPU (24GB VRAM) can safely handle 2 concurrent pipelines max
-# Each pipeline uses ~11GB VRAM (WhisperX 4GB + TTS 4GB + Separator 3GB)
+# Each# Global semaphore to limit concurrent pipeline executions (GPU memory protection)
 _PIPELINE_SEMAPHORE = asyncio.Semaphore(2)
+
+# Global lock for model downloads to prevent race conditions
+# Multiple workers downloading the same model file simultaneously causes corruption
+_MODEL_DOWNLOAD_LOCK = asyncio.Lock()
 logger.info("Pipeline concurrency limited to 2 simultaneous executions (GPU memory protection)")
 
 OUTS.mkdir(parents=True, exist_ok=True)
@@ -976,24 +980,30 @@ async def maybe_run_audio_separation(
         logger.error(f"Raw audio file disappeared before separation: {raw_audio_path}")
         return None, None, "default"
     
-    try:
-        await run_in_thread(
-            separation,
-            input_file=str(raw_audio_path),
-            output_dir=str(vocals_path.parent),
-            model_filename=sep_model,
-            output_format="WAV",
-            custom_output_names={"vocals": "vocals", get_non_vocals_stem(sep_model): "background"},
-            model_file_dir=str(model_file_dir),
-        )
-    except ValueError as exc:
-        logger.error("Audio separation failed with %s", exc)
-        logger.error("Supported models:\n%s", json.dumps(filter_supported_models_grouped(), indent=2))
-        return None, None, "default"
-    except FileNotFoundError as exc:
-        logger.error(f"File not found during audio separation: {exc}")
-        logger.error(f"Raw audio path was: {raw_audio_path}, exists: {raw_audio_path.exists()}")
-        return None, None, "default"
+    # CRITICAL FIX: Use lock to prevent multiple workers from downloading/loading the same
+    # model file simultaneously, which causes file corruption and orchestrator crash
+    async with _MODEL_DOWNLOAD_LOCK:
+        logger.info(f"Acquired model download lock for {sep_model}")
+        try:
+            await run_in_thread(
+                separation,
+                input_file=str(raw_audio_path),
+                output_dir=str(vocals_path.parent),
+                model_filename=sep_model,
+                output_format="WAV",
+                custom_output_names={"vocals": "vocals", get_non_vocals_stem(sep_model): "background"},
+                model_file_dir=str(model_file_dir),
+            )
+        except ValueError as exc:
+            logger.error("Audio separation failed with %s", exc)
+            logger.error("Supported models:\\n%s", json.dumps(filter_supported_models_grouped(), indent=2))
+            return None, None, "default"
+        except FileNotFoundError as exc:
+            logger.error(f"File not found during audio separation: {exc}")
+            logger.error(f"Raw audio path was: {raw_audio_path}, exists: {raw_audio_path.exists()}")
+            return None, None, "default"
+        finally:
+            logger.info(f"Released model download lock for {sep_model}")
 
     if not vocals_path.exists() or not background_path.exists():
         logger.warning("Separation completed but expected stems are missing; falling back to user original audio and translation over dubbing strategy")
