@@ -80,7 +80,7 @@ export const bulkMode = {
                     singleInputs.hidden = false;
                     bulkInputs.style.display = 'none';
                     bulkInputs.hidden = true;
-                    submitBtn.textContent = '🚀 Start Dubbing';
+                    if (submitBtn) submitBtn.textContent = '🚀 Start Dubbing';
                     console.log('BulkMode: Switched to SINGLE mode');
                 }
             });
