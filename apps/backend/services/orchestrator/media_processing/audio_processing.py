@@ -1089,6 +1089,7 @@ def overlay_on_background(dubbed_segments: List[Dict],
         return overlay_on_background_default(
             dubbed_segments, background_path, output_path, ducking_db
         )
+        )
 
 
 # NOTE: get_audio_duration is imported from strict_timing module when available
