@@ -2864,11 +2864,23 @@ async def bulk_worker(worker_id: int):
                     video = video_data['video']
                     options = video_data['options']
                     
+                    # FIX: Extract language codes from display names like "english (en)" -> "en"
+                    def extract_lang_code(lang: str) -> str:
+                        """Extract 'en' from 'english (en)' or return as-is if already a code."""
+                        lang = lang.strip()
+                        if '(' in lang and ')' in lang:
+                            # Extract code from "english (en)" → "en"
+                            return lang.split('(')[1].split(')')[0].strip()
+                        return lang
+                    
+                    # Process target languages
+                    target_langs = [extract_lang_code(lang) for lang in options['target_langs'].split(',')]
+                    
                     # Build request similar to single-mode - call run_dubbing directly
                     result = await dub(
                         video_url=video['url'] if video['type'] == 'url' else str(Path(video['path'])),
                         target_work=options['task'],
-                        target_langs=[lang.strip() for lang in options['target_langs'].split(',')],
+                        target_langs=target_langs,
                         source_lang=options.get('source_lang') or None,
                         translation_strategy="default",
                         dubbing_strategy="default",
