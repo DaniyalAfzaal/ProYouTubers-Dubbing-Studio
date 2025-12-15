@@ -445,7 +445,8 @@ export const bulkMode = {
                         status: 'failed',
                         error: video.error || 'Processing failed',
                         logs: `Bulk mode: ${video.error || 'Unknown error'}`,
-                        mode: 'bulk'
+                        mode: 'bulk',
+                        videoUrl: ''  // Empty but present for validation
                     });
                     this.savedDownloads.add(video.name);
                 }

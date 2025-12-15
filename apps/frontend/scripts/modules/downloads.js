@@ -79,9 +79,9 @@ export const downloads = {
                 this.processes = [];
             }
 
-            // Filter out invalid entries
+            // Filter out invalid entries (allow empty videoUrl for failed/cancelled jobs)
             this.processes = this.processes.filter(p =>
-                p && p.id && p.name && p.videoUrl
+                p && p.id && p.name && (p.videoUrl || p.status === 'failed' || p.status === 'cancelled')
             );
         } catch (e) {
             console.error('Failed to parse processes from localStorage:', e);

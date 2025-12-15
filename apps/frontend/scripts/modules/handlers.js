@@ -379,7 +379,8 @@ const handlers = {
             status: 'failed',
             error: event.message || 'Unknown error',
             logs: `Job failed: ${event.message || 'Unknown error'}`,
-            mode: 'single'
+            mode: 'single',
+            videoUrl: ''  // Empty but present for validation
           });
         }).catch(err => {
           console.error('Could not save failed job:', err);
