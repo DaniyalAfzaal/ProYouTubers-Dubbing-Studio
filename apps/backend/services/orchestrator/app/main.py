@@ -2790,6 +2790,7 @@ class BulkJob:
     processing: int = 0
     videos: List[Dict[str, Any]] = field(default_factory=list)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    temp_files: List[Path] = field(default_factory=list)  # NEW: Track temp files for cleanup
 
 BULK_JOBS: Dict[str, BulkJob] = {}
 
@@ -2814,6 +2815,45 @@ BULK_QUEUE: Optional[asyncio.Queue] = None
 BULK_WORKERS_STARTED = False
 _BULK_WORKERS_LOCK = asyncio.Lock()  # FIX: Add lock for startup
 BULK_JOBS_MAX_AGE = 3600  # 1 hour
+
+
+async def cleanup_batch_files(batch_id: str):
+    """
+    FIX Bug #2: Cleanup temp files after batch completes.
+    Waits for job completion, then removes uploaded files and old job data.
+    """
+    try:
+        # Wait for job to complete (check every 10 seconds)
+        for _ in range(360):  # Max 1 hour
+            await asyncio.sleep(10)
+            job = BULK_JOBS.get(batch_id)
+            if not job:
+                return  # Job already cleaned up
+            
+            # Check if complete
+            if job.completed + job.failed >= job.total:
+                logger.info(f"Batch {batch_id} completed, starting cleanup...")
+                # Wait additional 5 minutes for user to download
+                await asyncio.sleep(300)
+                break
+        
+        # Cleanup temp files
+        job = BULK_JOBS.get(batch_id)
+        if job and job.temp_files:
+            for temp_file in job.temp_files:
+                try:
+                    if temp_file.exists():
+                        temp_file.unlink()
+                        logger.debug(f"Deleted temp file: {temp_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to delete temp file {temp_file}: {e}")
+        
+        # Remove job from memory
+        BULK_JOBS.pop(batch_id, None)
+        logger.info(f"Cleaned up batch {batch_id}")
+        
+    except Exception as e:
+        logger.error(f"Cleanup failed for batch {batch_id}: {e}", exc_info=True)
 
 
 async def start_bulk_workers():
@@ -3038,8 +3078,16 @@ async def bulk_run(
         raise HTTPException(400, "No valid videos or max 100 exceeded")
     
     batch_id = str(uuid.uuid4())
-    job = BulkJob(batch_id=batch_id, total=len(videos), videos=[{'name': v['name'], 'status': 'queued'} for v in videos])
+    job = BulkJob(
+        batch_id=batch_id, 
+        total=len(videos), 
+        videos=[{'name': v['name'], 'status': 'queued'} for v in videos],
+        temp_files=temp_files_to_track  # NEW: Store for cleanup
+    )
     BULK_JOBS[batch_id] = job
+    
+    # FIX Bug #2: Schedule cleanup after job completion
+    asyncio.create_task(cleanup_batch_files(batch_id))
     
     # PHASE 2: Use Modal if available, otherwise fallback to queue
     if MODAL_AVAILABLE and process_single_video_modal:
