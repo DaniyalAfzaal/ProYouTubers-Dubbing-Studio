@@ -43,7 +43,28 @@ def separation(input_file: str, output_dir: str, model_filename: str, output_for
     else:
         logger.info(f"ℹ️  Audio separator using CPU")
     
-    separator.load_model(model_filename=model_filename)
+    try:
+        separator.load_model(model_filename=model_filename)
+    except TypeError as e:
+        # Handle audio_separator library bug where missing YAML config returns None
+        if "'NoneType' object does not support item assignment" in str(e):
+            logger.error("=" * 70)
+            logger.error("⚠️  AUDIO SEPARATOR MODEL CONFIG ERROR")
+            logger.error(f"   Model: {model_filename}")
+            logger.error("   The model's YAML configuration file is missing or corrupted")
+            logger.error("   This is a known issue with the audio_separator library")
+            logger.error("=" * 70)
+            logger.warning("Falling back to no audio separation - using full audio for dubbing")
+            # Return None to indicate separation failed - caller should handle
+            return None, None
+        else:
+            # Different TypeError - re-raise
+            raise
+    except Exception as e:
+        logger.error(f"Failed to load audio separation model: {e}")
+        logger.warning("Falling back to no audio separation")
+        return None, None
+    
     output_files = separator.separate(input_file, custom_output_names=custom_output_names)
     return output_files
 
