@@ -227,7 +227,7 @@ export const downloads = {
 
                 list.querySelectorAll('.process-card').forEach(el => el.classList.remove('active'));
                 card.classList.add('active');
-                this.showProcessDetails(this.processes[parseInt(card.dataset.index)]);
+                this.showProcessDetails(this.processes[parseInt(card.dataset.index, 10)]);
             });
         });
 
@@ -235,7 +235,7 @@ export const downloads = {
         list.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const index = parseInt(btn.dataset.index);
+                const index = parseInt(btn.dataset.index, 10);
                 if (confirm('Delete this process?')) {
                     this.deleteProcess(index);
                 }
@@ -469,7 +469,7 @@ export const downloads = {
                 if (e.target.closest('.delete-btn')) return;
                 list.querySelectorAll('.process-card').forEach(el => el.classList.remove('active'));
                 card.classList.add('active');
-                const index = parseInt(card.dataset.index);
+                const index = parseInt(card.dataset.index, 10);
                 this.showProcessDetails(this.processes[index]);
             });
         });
@@ -477,7 +477,7 @@ export const downloads = {
         list.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const index = parseInt(btn.dataset.index);
+                const index = parseInt(btn.dataset.index, 10);
                 if (confirm('Delete this process?')) {
                     this.deleteProcess(index);
                     // Re-apply search after deletion
