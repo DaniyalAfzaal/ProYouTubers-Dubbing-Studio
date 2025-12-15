@@ -310,7 +310,14 @@ export const bulkMode = {
             this.startPolling(result.batch_id);
 
         } catch (error) {
-            console.error('Bulk dubbing error:', error);
+            console.error('Failed to start bulk dubbing:', error);
+
+            // Safe DOM access - check if element exists
+            const statusEl = document.querySelector('.bulk-status');
+            if (statusEl) {
+                statusEl.textContent = 'Failed to start';
+            }
+
             toast.error(`Failed to start bulk dubbing: ${error.message}`);
 
             const submitBtn = document.querySelector('button[type="submit"]');
