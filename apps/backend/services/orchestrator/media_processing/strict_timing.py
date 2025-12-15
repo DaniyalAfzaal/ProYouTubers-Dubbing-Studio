@@ -523,9 +523,6 @@ def _concatenate_timeline_ffmpeg(timeline: List[Dict], output_file: str):
     finally:
         # Clean up temp dir
         shutil.rmtree(silence_temp_dir, ignore_errors=True)
-
-
-def _concatenate_timeline_ffmpeg(timeline: List[Dict], output_file: str):
     """
     Helper function to concatenate timeline elements using ffmpeg.
     

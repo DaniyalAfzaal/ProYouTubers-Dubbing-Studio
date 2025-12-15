@@ -22,11 +22,12 @@ try:
         calculate_segment_timing_stats
     )
     STRICT_TIMING_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     STRICT_TIMING_AVAILABLE = False
     import logging
     logger = logging.getLogger(__name__)
-    logger.warning("Strict timing module not available - using legacy timing")
+    logger.warning(f"Strict timing module not available: {e}")
+    logger.warning("Falling back to legacy timing mode")
 
 _silero_vad_lock = threading.Lock()
 _silero_vad_bundle: Optional[Tuple[torch.nn.Module, Tuple]] = None
