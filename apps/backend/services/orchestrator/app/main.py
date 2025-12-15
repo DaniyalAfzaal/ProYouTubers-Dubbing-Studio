@@ -3174,3 +3174,41 @@ async def bulk_status(batch_id: str):
                 for v in job.videos
             ]
         }
+
+
+@app.post(f"{API_PREFIX}/jobs/bulk-cancel/{{batch_id}}")
+async def bulk_cancel(batch_id: str):
+    """
+    FIX Issue #2: Cancel a bulk batch.
+    Marks queued and processing videos as cancelled.
+    """
+    try:
+        uuid.UUID(batch_id)
+    except ValueError:
+        raise HTTPException(400, "Invalid batch ID format")
+    
+    job = BULK_JOBS.get(batch_id)
+    if not job:
+        raise HTTPException(404, "Batch not found")
+    
+    async with job.lock:
+        cancelled_count = 0
+        
+        # Mark all queued videos as cancelled
+        for video in job.videos:
+            if video['status'] == 'queued':
+                video['status'] = 'cancelled'
+                video['error'] = 'Cancelled by user'
+                job.failed += 1
+                cancelled_count += 1
+        
+        logger.info(f"Cancelled batch {batch_id}: {cancelled_count} videos stopped")
+        
+        return {
+            "status": "cancelled",
+            "batch_id": batch_id,
+            "cancelled_count": cancelled_count,
+            "completed": job.completed,
+            "failed": job.failed,
+            "processing": job.processing
+        }

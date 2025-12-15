@@ -182,6 +182,8 @@ const handlers = {
         ttsReview.hide();
         ui.hideInterrupt();
         state.runId = "";
+        // FIX Issue #2: Close EventSource on cancellation
+        if (eventSource) eventSource.close();
       },
 
       result: () => {
@@ -314,6 +316,8 @@ const handlers = {
         ttsReview.hide();
         ui.hideInterrupt();
         state.runId = "";
+        // FIX Issue #2: Close EventSource on error
+        if (eventSource) eventSource.close();
       },
 
       complete: () => {
@@ -323,6 +327,8 @@ const handlers = {
         alignmentReview.hide();
         ttsReview.hide();
         state.runId = "";
+        // FIX Issue #2: Close EventSource on stream completion
+        if (eventSource) eventSource.close();
       }
     };
 
