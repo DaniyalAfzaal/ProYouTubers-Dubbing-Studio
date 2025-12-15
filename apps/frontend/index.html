@@ -9,7 +9,7 @@
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎥</text></svg>">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/bulk-progress.css">
-    <link rel="stylesheet" href="styles/downloads.css">
+    <link rel="stylesheet" href="styles/downloads-enhancements.css">
     <link rel="stylesheet" href="./styles/media-inputs.css">
 </head>
 
@@ -439,29 +439,59 @@
 
         <!-- Downloads Manager Page -->
         <section id="downloads-page" class="downloads-page" hidden>
-            <div class="downloads-header">
-                <h1>📥 Downloads Manager</h1>
-                <button type="button" class="btn-close" id="close-downloads">✕ Close</button>
-            </div>
+            <div class="downloads-container">
+                <div class="downloads-header">
+                    <h1>📥 Downloads Manager</h1>
+                    <div class="header-actions">
+                        <button type="button" class="btn-export" id="export-btn" title="Export download history">
+                            <span class="btn-icon">💾</span>
+                            Export
+                        </button>
+                        <button type="button" class="btn-clear-all" id="clear-all-btn"
+                            title="Clear all download history">
+                            <span class="btn-icon">🗑️</span>
+                            Clear All
+                        </button>
+                        <button type="button" class="btn-close" id="close-downloads">
+                            <span class="btn-icon">✕</span>
+                            Close
+                        </button>
+                    </div>
+                </div>
 
-            <div class="downloads-content">
-                <div class="downloads-sidebar">
-                    <h3>Process History</h3>
-                    <div id="process-list" class="process-list">
-                        <div class="empty-state">
-                            <span class="empty-icon">📋</span>
-                            <p>No completed processes yet</p>
+                <div class="downloads-content">
+                    <div class="downloads-sidebar">
+                        <div class="sidebar-header">
+                            <h3>Process History</h3>
+                            <select id="sort-select" class="sort-select" title="Sort processes">
+                                <option value="date-new">Newest First</option>
+                                <option value="date-old">Oldest First</option>
+                                <option value="name-asc">Name A-Z</option>
+                                <option value="name-desc">Name Z-A</option>
+                            </select>
+                        </div>
+
+                        <!-- Search Bar -->
+                        <div class="search-container">
+                            <input type="text" id="downloads-search" placeholder="🔍 Search by name or language..."
+                                class="search-input">
+                        </div>
+
+                        <div id="process-list" class="process-list">
+                            <div class="empty-state">
+                                <span class="empty-icon">📋</span>
+                                <p>No completed processes yet</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="downloads-main">
+                        <div id="download-details" class="download-details empty-state">
+                            <span class="empty-icon">🎬</span>
+                            <p>Select a process to view details</p>
                         </div>
                     </div>
                 </div>
-
-                <div class="downloads-main">
-                    <div id="download-details" class="download-details empty-state">
-                        <span class="empty-icon">🎬</span>
-                        <p>Select a process to view details</p>
-                    </div>
-                </div>
-            </div>
         </section>
     </main>
     <script type="module" src="scripts/app.js"></script>

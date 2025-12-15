@@ -10,15 +10,12 @@ export const downloads = {
         const closeBtn = document.getElementById('close-downloads');
         const downloadsPage = document.getElementById('downloads-page');
 
-        // FIX: Add null checks for all elements
         if (downloadsBtn && downloadsPage) {
             downloadsBtn.addEventListener('click', () => {
-                // Show loading state
                 const originalText = downloadsBtn.textContent;
                 downloadsBtn.disabled = true;
                 downloadsBtn.textContent = 'Loading...';
 
-                // Small delay to show loading feedback
                 setTimeout(() => {
                     downloadsPage.hidden = false;
                     this.loadProcesses();
@@ -34,7 +31,38 @@ export const downloads = {
             });
         }
 
-        // FIX: Add cleanup on page unload
+        // Clear All button
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', () => {
+                this.clearAll();
+            });
+        }
+
+        // Export button
+        const exportBtn = document.getElementById('export-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                this.exportHistory();
+            });
+        }
+
+        // Search input
+        const searchInput = document.getElementById('downloads-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.filterProcesses(e.target.value);
+            });
+        }
+
+        // Sort dropdown
+        const sortSelect = document.getElementById('sort-select');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', (e) => {
+                this.sortAndRender(e.target.value);
+            });
+        }
+
         window.addEventListener('beforeunload', () => {
             // Cleanup if needed
         });
@@ -162,11 +190,11 @@ export const downloads = {
         }
 
         list.innerHTML = this.processes.map((proc, i) => `
-            <div class="process-card${i === 0 ? ' active' : ''}" data-index="${i}" title="${this.escapeHtml(proc.name || 'Dubbing Process')}">
+            <div class="process-card${proc.status === 'failed' ? ' failed' : ''}${i === 0 ? ' active' : ''}" data-index="${i}" title="${this.escapeHtml(proc.name || 'Dubbing Process')}">
                 <div class="process-header">
-                    <div class="process-status">
-                        <span class="status-icon">✓</span>
-                        <span class="status-text">Completed</span>
+                    <div class="process-status ${proc.status === 'failed' ? 'failed' : 'completed'}">
+                        <span class="status-icon">${proc.status === 'failed' ? '✗' : '✓'}</span>
+                        <span class="status-text">${proc.status === 'failed' ? 'Failed' : 'Completed'}</span>
                     </div>
                     <button class="delete-btn" data-index="${i}" title="Delete" aria-label="Delete process">
                         <span>🗑️</span>
@@ -216,10 +244,20 @@ export const downloads = {
 
     showProcessDetails(process) {
         const details = document.getElementById('download-details');
-        if (!details) return;  // Safety check
+        if (!details) return;
 
-        // FIX: Remove inline onclick, use data attributes instead
         details.innerHTML = `
+            <!-- Video Preview Section -->
+            <div class="video-preview-section">
+                <h3>🎬 Video Preview</h3>
+                <video controls 
+                       src="${this.escapeHtml(process.videoUrl)}"
+                       class="preview-video"
+                       preload="metadata">
+                    Your browser does not support video playback.
+                </video>
+            </div>
+            
             <div class="download-section">
                 <h3>📥 Download Options</h3>
                 <div class="download-buttons">
@@ -343,5 +381,171 @@ export const downloads = {
             return process.duration;
         }
         return 'Unknown';
+    },
+
+    // New Features for 100% Quality
+
+    filterProcesses(query) {
+        const searchInput = document.getElementById('downloads-search');
+        if (!query || !query.trim()) {
+            this.renderProcessList();
+            return;
+        }
+
+        const filtered = this.processes.filter(p => {
+            const searchTerm = query.toLowerCase();
+            return (
+                p.name?.toLowerCase().includes(searchTerm) ||
+                p.languages?.toLowerCase().includes(searchTerm) ||
+                p.source?.toLowerCase().includes(searchTerm) ||
+                p.logs?.toLowerCase().includes(searchTerm)
+            );
+        });
+
+        this.renderFilteredList(filtered, query);
+    },
+
+    renderFilteredList(filteredProcesses, query) {
+        const list = document.getElementById('process-list');
+        if (!list) return;
+
+        if (filteredProcesses.length === 0) {
+            list.innerHTML = `
+                <div class="empty-state-beautiful">
+                    <div class="empty-icon">🔍</div>
+                    <h3>No Matches Found</h3>
+                    <p>No results for "${this.escapeHtml(query)}"</p>
+                    <div class="quick-tip">
+                        <span class="tip-icon">💡</span>
+                        <span>Try a different search term</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('download-details').innerHTML = `
+                <div class="empty-state-beautiful">
+                    <div class="empty-icon">🔍</div>
+                    <h3>No Selection</h3>
+                    <p>Refine your search to see results</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Render filtered list with same template as renderProcessList
+        list.innerHTML = filteredProcesses.map((proc, i) => `
+            <div class="process-card${i === 0 ? ' active' : ''}" data-index="${this.processes.indexOf(proc)}" title="${this.escapeHtml(proc.name || 'Dubbing Process')}">
+                <div class="process-header">
+                    <div class="process-status ${proc.status === 'failed' ? 'failed' : 'completed'}">
+                        <span class="status-icon">${proc.status === 'failed' ? '✗' : '✓'}</span>
+                        <span class="status-text">${proc.status === 'failed' ? 'Failed' : 'Completed'}</span>
+                    </div>
+                    <button class="delete-btn" data-index="${this.processes.indexOf(proc)}" title="Delete" aria-label="Delete process">
+                        <span>🗑️</span>
+                    </button>
+                </div>
+                <div class="process-name">${this.escapeHtml(this.truncateName(proc.name || 'Dubbing Process'))}</div>
+                <div class="process-meta">
+                    <span class="meta-item">
+                        <span class="meta-icon">🌐</span>
+                        ${this.escapeHtml(proc.languages || 'N/A')}
+                    </span>
+                    <span class="meta-item">
+                        <span class="meta-icon">⏱️</span>
+                        ${this.formatTimeAgo(proc.timestamp)}
+                    </span>
+                </div>
+            </div>
+        `).join('');
+
+        // Add event handlers
+        list.querySelectorAll('.process-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-btn')) return;
+                list.querySelectorAll('.process-card').forEach(el => el.classList.remove('active'));
+                card.classList.add('active');
+                const index = parseInt(card.dataset.index);
+                this.showProcessDetails(this.processes[index]);
+            });
+        });
+
+        list.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.dataset.index);
+                if (confirm('Delete this process?')) {
+                    this.deleteProcess(index);
+                    // Re-apply search after deletion
+                    const searchInput = document.getElementById('downloads-search');
+                    if (searchInput && searchInput.value) {
+                        this.filterProcesses(searchInput.value);
+                    }
+                }
+            });
+        });
+
+        if (filteredProcesses.length > 0) {
+            this.showProcessDetails(filteredProcesses[0]);
+        }
+    },
+
+    sortAndRender(sortBy) {
+        const processesCopy = [...this.processes];
+
+        switch (sortBy) {
+            case 'date-new':
+                processesCopy.sort((a, b) => b.timestamp - a.timestamp);
+                break;
+            case 'date-old':
+                processesCopy.sort((a, b) => a.timestamp - b.timestamp);
+                break;
+            case 'name-asc':
+                processesCopy.sort((a, b) => a.name.localeCompare(b.name));
+                break;
+            case 'name-desc':
+                processesCopy.sort((a, b) => b.name.localeCompare(a.name));
+                break;
+        }
+
+        // Temporarily set sorted array for rendering
+        const original = this.processes;
+        this.processes = processesCopy;
+        this.renderProcessList();
+        this.processes = original;
+    },
+
+    exportHistory() {
+        if (this.processes.length === 0) {
+            if (typeof toast !== 'undefined') {
+                toast.warn('No download history to export');
+            } else {
+                alert('No download history to export');
+            }
+            return;
+        }
+
+        const data = {
+            exported: new Date().toISOString(),
+            exportedBy: 'ProYouTubers Dubbing Studio',
+            totalProcesses: this.processes.length,
+            processes: this.processes
+        };
+
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `dubbing-history-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+
+        if (typeof toast !== 'undefined') {
+            toast.success(`Exported ${this.processes.length} processes!`);
+        }
     }
 };
