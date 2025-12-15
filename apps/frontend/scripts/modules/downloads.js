@@ -105,6 +105,11 @@ export const downloads = {
             return false;
         }
 
+        // Set default status if not provided
+        if (!processData.status) {
+            processData.status = 'completed';
+        }
+
         // FIX: Check for duplicates before adding
         const isDuplicate = this.processes.some(p =>
             p.videoUrl === processData.videoUrl &&

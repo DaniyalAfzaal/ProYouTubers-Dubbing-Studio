@@ -203,30 +203,82 @@ const handlers = {
           ui.updateSourcePreview(event.result.source_video.url, "Source (workspace)");
         }
 
-        // Save to downloads manager
-        import('./downloads.js').then(({ downloads }) => {
-          const langs = Object.keys(event.result?.languages || {});
-          if (langs.length > 0) {
-            const firstLang = langs[0];
-            const langData = event.result.languages[firstLang];
+        // Save to downloads manager with comprehensive error handling
+        import('./downloads.js')
+          .then(({ downloads }) => {
+            const langs = Object.keys(event.result?.languages || {});
+            if (langs.length > 0) {
+              const firstLang = langs[0];
+              const langData = event.result.languages[firstLang];
 
-            const workspaceId = event.result?.workspace_id;
-            if (workspaceId) {
-              downloads.saveProcess({
-                name: state.sourceDescriptor || 'Dubbing Process',
+              const workspaceId = event.result?.workspace_id;
+              if (!workspaceId) {
+                console.warn('No workspace_id in result, cannot save to downloads');
+                if (typeof toast !== 'undefined') {
+                  toast.warn('Completed but could not save to history');
+                }
+                return;
+              }
+
+              // Sanitize and validate name
+              const sanitizeName = (name) => {
+                if (!name || typeof name !== 'string') return 'Dubbing Process';
+                return name.replace(/[<>:"/\\|?*]/g, '_').substring(0, 100).trim() || 'Dubbing Process';
+              };
+
+              const downloadEntry = {
+                name: sanitizeName(state.sourceDescriptor),
                 timestamp: Date.now(),
-                source: state.sourceDescriptor,
+                timestampISO: new Date().toISOString(),
+                source: state.sourceDescriptor || 'Unknown',
                 languages: langs.join(', '),
                 videoUrl: `/api/download/${workspaceId}/dubbed_video_${firstLang}.mp4`,
                 audioUrl: `/api/download/${workspaceId}/final_dubbed_audio_${firstLang}.wav`,
                 rawAudioUrl: `/api/download/${workspaceId}/dubbed_speech_track_${firstLang}.wav`,
                 duration: langData?.duration || 'Unknown',
                 logs: `Single mode dubbing completed successfully for ${langs.join(', ')}`,
-                mode: 'single'
-              });
+                mode: 'single',
+                workspaceId: workspaceId,
+                status: 'completed'
+              };
+
+              const saved = downloads.saveProcess(downloadEntry);
+
+              if (!saved) {
+                console.error('Failed to save process to downloads');
+                if (typeof toast !== 'undefined') {
+                  toast.warn('Process completed but not saved to history');
+                }
+                // Backup to sessionStorage
+                try {
+                  const backup = JSON.parse(sessionStorage.getItem('failed_saves') || '[]');
+                  backup.push(downloadEntry);
+                  sessionStorage.setItem('failed_saves', JSON.stringify(backup));
+                } catch (e) {
+                  console.error('Backup save also failed:', e);
+                }
+              }
             }
-          }
-        }).catch(err => console.error('Failed to save to downloads:', err));
+          })
+          .catch(err => {
+            console.error('Failed to import downloads module:', err);
+            if (typeof toast !== 'undefined') {
+              toast.error('Could not save to download history');
+            }
+            // Backup to sessionStorage
+            try {
+              const backup = JSON.parse(sessionStorage.getItem('failed_saves') || '[]');
+              backup.push({
+                timestamp: Date.now(),
+                workspaceId: event.result?.workspace_id,
+                source: state.sourceDescriptor,
+                error: err.message
+              });
+              sessionStorage.setItem('failed_saves', JSON.stringify(backup));
+            } catch (e) {
+              console.error('Backup save also failed:', e);
+            }
+          });
       },
 
       status: () => {
@@ -316,7 +368,23 @@ const handlers = {
         ttsReview.hide();
         ui.hideInterrupt();
         state.runId = "";
-        // FIX Issue #2: Close EventSource on error
+
+        // Save failed job to downloads
+        import('./downloads.js').then(({ downloads }) => {
+          downloads.saveProcess({
+            name: state.sourceDescriptor || 'Failed Job',
+            timestamp: Date.now(),
+            timestampISO: new Date().toISOString(),
+            source: state.sourceDescriptor || 'Unknown',
+            status: 'failed',
+            error: event.message || 'Unknown error',
+            logs: `Job failed: ${event.message || 'Unknown error'}`,
+            mode: 'single'
+          });
+        }).catch(err => {
+          console.error('Could not save failed job:', err);
+        });
+
         if (eventSource) eventSource.close();
       },
 

@@ -9,8 +9,11 @@ export const bulkMode = {
     currentBatchId: null,
     pollInterval: null,
     pollErrorCount: 0,
+    maxPollErrors: 5,
     videoItemsCache: new Map(),
+    pollDelay: 2000,
     savedDownloads: new Set(), // Track which videos have been saved to downloads
+    saveMutex: new Set(), // Prevent race conditions when saving
 
     init() {
         this.setupModeToggle();
@@ -419,6 +422,34 @@ export const bulkMode = {
         videos.forEach((video, index) => {
             const card = this.renderVideoCard(video, index);
             list.appendChild(card);
+
+            // Auto-save completed videos to downloads (if not already saved)
+            if ((video.status === 'complete' || video.status === 'completed') &&
+                !this.savedDownloads.has(video.name)) {
+                this.saveToDownloads(video);
+            }
+
+            // Track failed jobs in downloads
+            if (video.status === 'failed' && !this.savedDownloads.has(video.name)) {
+                if (typeof downloads !== 'undefined' && downloads.saveProcess) {
+                    const sanitizeName = (name) => {
+                        if (!name || typeof name !== 'string') return 'Video';
+                        return name.replace(/[<>:"/\\|?*]/g, '_').substring(0, 100).trim() || 'Video';
+                    };
+
+                    downloads.saveProcess({
+                        name: sanitizeName(video.name),
+                        timestamp: Date.now(),
+                        timestampISO: new Date().toISOString(),
+                        source: video.name || 'Unknown',
+                        status: 'failed',
+                        error: video.error || 'Processing failed',
+                        logs: `Bulk mode: ${video.error || 'Unknown error'}`,
+                        mode: 'bulk'
+                    });
+                    this.savedDownloads.add(video.name);
+                }
+            }
         });
     },
 
@@ -515,34 +546,68 @@ export const bulkMode = {
             return;
         }
 
-        // Check localStorage for actual duplicates (not just Set)
-        const existing = downloads.getProcesses();
-        const isDuplicate = existing.some(p =>
-            p.videoUrl === video.result.video_url &&
-            p.name === video.name
-        );
-
-        if (isDuplicate) {
-            console.log(`Skipping duplicate download entry for: ${video.name}`);
+        // Check if already being saved (prevent race condition)
+        if (this.saveMutex.has(video.name)) {
+            console.log(`Save already in progress for: ${video.name}`);
             return;
         }
 
-        const langs = Array.isArray(video.target_langs)
-            ? video.target_langs.join(', ')
-            : (video.target_langs || 'Multiple');
+        // Lock
+        this.saveMutex.add(video.name);
 
-        const saved = downloads.saveProcess({
-            name: video.name,
-            timestamp: Date.now(),
-            source: video.name,
-            languages: langs,
-            videoUrl: video.result.video_url,
-            logs: `Bulk dubbing completed successfully for languages: ${langs}`,
-            mode: 'bulk'
-        });
+        try {
+            // Check localStorage for actual duplicates
+            const existing = downloads.getProcesses();
+            const isDuplicate = existing.some(p =>
+                p.videoUrl === video.result.video_url &&
+                p.name === video.name
+            );
 
-        if (saved) {
-            this.savedDownloads.add(video.name);
+            if (isDuplicate) {
+                console.log(`Skipping duplicate download entry for: ${video.name}`);
+                return;
+            }
+
+            // Validate video data
+            if (!video.result?.video_url) {
+                console.warn(`No video URL for: ${video.name}`);
+                return;
+            }
+
+            // Sanitize name
+            const sanitizeName = (name) => {
+                if (!name || typeof name !== 'string') return 'Video';
+                return name.replace(/[<>:"/\\|?*]/g, '_').substring(0, 100).trim() || 'Video';
+            };
+
+            const langs = Array.isArray(video.target_langs)
+                ? video.target_langs.join(', ')
+                : (video.target_langs || 'Multiple');
+
+            const downloadEntry = {
+                name: sanitizeName(video.name),
+                timestamp: Date.now(),
+                timestampISO: new Date().toISOString(),
+                source: video.name || 'Unknown',
+                languages: langs,
+                videoUrl: video.result.video_url,
+                logs: `Bulk dubbing completed successfully for languages: ${langs}`,
+                mode: 'bulk',
+                status: 'completed'
+            };
+
+            const saved = downloads.saveProcess(downloadEntry);
+
+            if (saved) {
+                this.savedDownloads.add(video.name);
+            } else {
+                console.warn(`Failed to save download for: ${video.name}`);
+            }
+        } catch (error) {
+            console.error(`Error saving download for ${video.name}:`, error);
+        } finally {
+            // Always unlock
+            this.saveMutex.delete(video.name);
         }
     },
 
