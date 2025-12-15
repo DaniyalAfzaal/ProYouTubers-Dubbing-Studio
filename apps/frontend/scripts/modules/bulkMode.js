@@ -10,6 +10,7 @@ export const bulkMode = {
     pollInterval: null,
     pollErrorCount: 0,
     videoItemsCache: new Map(),
+    savedDownloads: new Set(), // Track which videos have been saved to downloads
 
     init() {
         this.setupModeToggle();
@@ -366,117 +367,163 @@ export const bulkMode = {
     },
 
     updateProgress(data) {
-        // FIX Bug #6: Add DOM element safety helper
+        // Update stats with new IDs
         const setTextIfExists = (id, value) => {
             const el = document.getElementById(id);
-            if (el) {
-                el.textContent = value;
-            } else {
-                console.warn(`Element not found: ${id}`);
-            }
+            if (el) el.textContent = value;
         };
 
-        // FIX: Add fallback values for undefined data
-        setTextIfExists('bulk-completed', data.completed || 0);
-        setTextIfExists('bulk-processing', data.processing || 0);
-        setTextIfExists('bulk-queued', data.queued || 0);
-        setTextIfExists('bulk-failed', data.failed || 0);
+        const completed = data.completed || 0;
+        const processing = data.processing || 0;
+        const failed = data.failed || 0;
+        const queued = data.queued || 0;
+        const total = data.total || 0;
 
-        // FIX: Prevent divide by zero
-        const progress = (data.total && data.total > 0) ?
-            ((data.completed + data.failed) / data.total) * 100 : 0;
+        setTextIfExists('batch-total', total);
+        setTextIfExists('batch-complete', completed);
+        setTextIfExists('batch-processing', processing);
+        setTextIfExists('batch-failed', failed);
+        setTextIfExists('batch-queued', queued);
 
-        const progressBar = document.getElementById('bulk-progress-bar');
-        if (progressBar) {
-            progressBar.style.width = `${progress}%`;
-        } else {
-            console.warn('Element not found: bulk-progress-bar');
-        }
+        // Update progress bar
+        const percentage = total > 0 ? Math.round((completed + failed) / total * 100) : 0;
+        const fill = document.getElementById('batch-progress-fill');
+        const percentText = document.getElementById('batch-percentage');
+
+        if (fill) fill.style.width = `${percentage}%`;
+        if (percentText) percentText.textContent = `${percentage}%`;
 
         // Update video list
-        // FIX: Add null safety
-        this.updateVideoList(data.videos || []);
+        if (data.videos && Array.isArray(data.videos)) {
+            this.updateVideoList(data.videos);
+        }
     },
 
     updateVideoList(videos) {
         const list = document.getElementById('bulk-video-list');
         if (!list) return;
 
-        // FIX: Validate videos is an array
-        if (!videos || !Array.isArray(videos)) {
-            console.warn('updateVideoList: videos is not an array', videos);
+        if (!videos || !Array.isArray(videos) || videos.length === 0) {
+            list.innerHTML = `
+                <div class="batch-empty-state">
+                    <div class="icon">📦</div>
+                    <p>No videos in queue</p>
+                </div>
+            `;
             return;
         }
 
-        // Optimized: Update only changed items instead of full rebuild
+        // Clear list
+        list.innerHTML = '';
+
         videos.forEach((video, index) => {
-            const videoKey = `${this.currentBatchId}-${index}`;
-            const cached = this.videoItemsCache.get(videoKey);
+            const card = this.renderVideoCard(video, index);
+            list.appendChild(card);
+        });
+    },
 
-            // Check if we need to update this item
-            const videoStr = JSON.stringify(video);
-            if (cached && cached.data === videoStr) {
-                return; // No change, skip
+    renderVideoCard(video, index) {
+        const card = document.createElement('div');
+        card.className = `video-card status-${video.status}`;
+
+        const statusIcons = {
+            complete: '✅',
+            completed: '✅',
+            processing: '⚡',
+            failed: '❌',
+            queued: '⏸',
+            cancelled: '⏹'
+        };
+
+        const statusIcon = statusIcons[video.status] || '📝';
+        const displayName = video.name.length > 60 ? video.name.substring(0, 57) + '...' : video.name;
+
+        let cardHTML = `
+            <div class="video-card-header">
+                <span class="video-icon">🎬</span>
+                <h4 class="video-name" title="${this.escapeHtml(video.name)}">${this.escapeHtml(displayName)}</h4>
+                <span class="video-status ${video.status}">
+                    ${statusIcon} ${video.status}
+                </span>
+            </div>
+        `;
+
+        // Add progress bar for processing videos
+        if (video.status === 'processing' && video.progress) {
+            cardHTML += `
+                <div class="video-progress">
+                    <div class="video-progress-bar">
+                        <div class="video-progress-fill" style="width: ${video.progress}%"></div>
+                    </div>
+                    <span class="video-progress-text">Processing: ${video.progress}%</span>
+                </div>
+            `;
+        }
+
+        // Add video info if available
+        if (video.target_langs || video.status === 'completed') {
+            cardHTML += '<div class="video-info">';
+            if (video.target_langs) {
+                const langs = Array.isArray(video.target_langs)
+                    ? video.target_langs.join(', ')
+                    : video.target_langs;
+                cardHTML += `<div class="info-item"><span>🌐 Languages:</span> ${this.escapeHtml(langs)}</div>`;
             }
+            cardHTML += '</div>';
+        }
 
-            // Get or create element
-            let item = cached?.element;
-            if (!item) {
-                item = document.createElement('div');
-                list.appendChild(item);
-            }
+        // Add error message if failed
+        if (video.error && video.status === 'failed') {
+            cardHTML += `
+                <div class="video-error">
+                    ⚠️ ${this.escapeHtml(video.error)}
+                </div>
+            `;
+        }
 
-            item.className = `video-item ${video.status}`;
+        // Add footer with actions
+        cardHTML += '<div class="video-card-footer">';
 
-            // Truncate long filenames with tooltip
-            const displayName = video.name.length > 50 ?
-                video.name.substring(0, 47) + '...' :
-                video.name;
-
-            let content = `
-                <h4 title="${this.escapeHtml(video.name)}">${this.escapeHtml(displayName)}</h4>
-                <span class="status">${video.status}</span>
+        // Download button for completed videos
+        if ((video.status === 'complete' || video.status === 'completed') && video.result?.video_url) {
+            const videoUrl = video.result.video_url;
+            cardHTML += `
+                <a href="${this.escapeHtml(videoUrl)}" 
+                   class="btn-download" 
+                   download="${this.escapeHtml(video.name)}">
+                    <span class="btn-icon">⬇️</span>
+                    Download
+                </a>
             `;
 
-            if (video.error) {
-                content += `<div class="error">${this.escapeHtml(video.error)}</div>`;
+            // Save to downloads manager
+            if (!this.savedDownloads.has(video.name)) {
+                this.saveToDownloads(video);
+                this.savedDownloads.add(video.name);
             }
+        }
 
-            if (video.result && video.result.video_url) {
-                content += `<a href="${this.escapeHtml(video.result.video_url)}" class="download-link" download>⬇️ Download</a>`;
+        cardHTML += '</div>';
 
-                // Save to downloads manager when completed
-                if (video.status === 'completed' && !cached?.saved) {
-                    downloads.saveProcess({
-                        name: video.name,
-                        timestamp: Date.now(),
-                        source: video.name,
-                        languages: 'Bulk Dubbing',
-                        videoUrl: video.result.video_url,
-                        logs: `Bulk dubbing completed successfully`
-                    });
-                    this.videoItemsCache.set(videoKey, {
-                        element: item,
-                        data: videoStr,
-                        saved: true
-                    });
-                } else {
-                    this.videoItemsCache.set(videoKey, {
-                        element: item,
-                        data: videoStr,
-                        saved: cached?.saved || false
-                    });
-                }
-            } else {
-                this.videoItemsCache.set(videoKey, {
-                    element: item,
-                    data: videoStr,
-                    saved: false
-                });
-            }
+        card.innerHTML = cardHTML;
+        return card;
+    },
 
-            item.innerHTML = content;
-        });
+    saveToDownloads(video) {
+        if (typeof downloads !== 'undefined' && downloads.saveProcess) {
+            const langs = Array.isArray(video.target_langs)
+                ? video.target_langs.join(', ')
+                : (video.target_langs || 'Multiple');
+
+            downloads.saveProcess({
+                name: video.name,
+                timestamp: Date.now(),
+                source: video.name,
+                languages: langs,
+                videoUrl: video.result.video_url,
+                logs: `Bulk dubbing completed successfully`
+            });
+        }
     },
 
     escapeHtml(text) {

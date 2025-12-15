@@ -7,9 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎥</text></svg>">
-    <link rel="stylesheet" href="./styles/main.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/bulk-progress.css">
+    <link rel="stylesheet" href="styles/downloads.css">
     <link rel="stylesheet" href="./styles/media-inputs.css">
-    <link rel="stylesheet" href="./styles/bulk-progress.css">
 </head>
 
 <body>
@@ -372,25 +373,67 @@
             <datalist id="speaker-list"></datalist>
         </section>
 
-        <!-- Bulk Progress Display -->
-        <section id="bulk-progress" class="bulk-progress-container" hidden>
-            <h2>Batch Processing Progress</h2>
+        <!-- Batch Processing Progress -->
+        <section id="bulk-progress" hidden>
+            <div class="batch-progress-container">
+                <h3 class="batch-progress-title">
+                    <span class="icon">📊</span>
+                    Batch Processing Progress
+                </h3>
 
-            <div class="overall-progress">
-                <div class="progress-stats">
-                    <span>Completed: <strong id="bulk-completed">0</strong></span>
-                    <span>Processing: <strong id="bulk-processing">0</strong></span>
-                    <span>Queued: <strong id="bulk-queued">0</strong></span>
-                    <span>Failed: <strong id="bulk-failed">0</strong></span>
-                    <span>Total: <strong id="bulk-total">0</strong></span>
-                </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="bulk-progress-bar" style="width: 0%"></div>
-                </div>
-            </div>
+                <!-- Overview Card -->
+                <div class="batch-overview-card">
+                    <div class="batch-stats">
+                        <div class="stat-item stat-total">
+                            <span class="stat-icon">🎬</span>
+                            <div class="stat-content">
+                                <span class="stat-label">Total</span>
+                                <span class="stat-value" id="batch-total">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-item stat-complete">
+                            <span class="stat-icon">✅</span>
+                            <div class="stat-content">
+                                <span class="stat-label">Complete</span>
+                                <span class="stat-value" id="batch-complete">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-item stat-processing">
+                            <span class="stat-icon">⚡</span>
+                            <div class="stat-content">
+                                <span class="stat-label">Processing</span>
+                                <span class="stat-value" id="batch-processing">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-item stat-failed">
+                            <span class="stat-icon">❌</span>
+                            <div class="stat-content">
+                                <span class="stat-label">Failed</span>
+                                <span class="stat-value" id="batch-failed">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-item stat-queued">
+                            <span class="stat-icon">⏸</span>
+                            <div class="stat-content">
+                                <span class="stat-label">Queued</span>
+                                <span class="stat-value" id="batch-queued">0</span>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="video-list" id="bulk-video-list">
-                <!-- Populated dynamically -->
+                    <div class="batch-progress-bar">
+                        <div class="progress-bar-fill" id="batch-progress-fill"></div>
+                        <span class="progress-percentage" id="batch-percentage">0%</span>
+                    </div>
+                </div>
+
+                <!-- Individual Videos -->
+                <div class="video-cards-container" id="bulk-video-list">
+                    <div class="batch-empty-state">
+                        <div class="icon">📦</div>
+                        <p>No videos in queue</p>
+                    </div>
+                </div>
             </div>
         </section>
 
