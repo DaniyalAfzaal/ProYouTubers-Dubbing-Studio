@@ -1405,8 +1405,8 @@ async def concatenate_segments(
         alpha=general_cfg.get("concatenation", {}).get("alpha", 0.25),
         min_dur=general_cfg.get("concatenation", {}).get("min_dur", 0.4),
         translation_segments=translation_segments,
-        # NEW: Strict timing parameters from config
-        strict_timing=general_cfg.get("strict_segment_timing", {}).get("enabled", True),
+        # NEW: Strict timing parameters - use UI choice if available, fallback to config
+        strict_timing=strict_segment_timing if 'strict_segment_timing' in locals() else general_cfg.get("strict_segment_timing", {}).get("enabled", True),
         max_speed_ratio=float(general_cfg.get("strict_segment_timing", {}).get("max_speed_ratio", 1.35))
     )
 
@@ -2146,6 +2146,7 @@ async def dub(
         background_path: Optional[Path] = None
 
         vocal_for_transcript = general_cfg.get("vocal_only_for_transcription", True)
+        strict_segment_timing = general_cfg.get("strict_segment_timing", True)
         logger.info("Vocal only for transcription: %s", vocal_for_transcript)
 
         if target_work != "sub" or vocal_for_transcript: # in subtitle-only mode, no need to separate audio for now: in future we might want to do it for better ASR performance if we succeed to implement automatic noise level detection

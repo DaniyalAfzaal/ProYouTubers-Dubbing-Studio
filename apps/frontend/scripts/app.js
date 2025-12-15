@@ -38,7 +38,8 @@ const initReviewButtons = () => {
       const review = state.pendingReviews.transcription;
       if (!review) return;
       const segments = review.payload.segments || [];
-      transcriptionReview.addSegment(segments.length - 1);
+      formData.append('vocal_only_for_transcription', document.getElementById('toggle-vocal-only').checked);
+      formData.append('strict_segment_timing', document.getElementById('toggle-strict-segment-timing').checked);
     };
   }
 

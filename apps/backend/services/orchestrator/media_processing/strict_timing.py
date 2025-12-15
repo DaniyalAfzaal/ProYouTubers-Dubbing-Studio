@@ -449,6 +449,96 @@ def _concatenate_timeline_ffmpeg(timeline: List[Dict], output_file: str):
     
     try:
         # Get audio properties from first audio segment
+        first_audio = next((t["path"] for t in timeline if t["type"] == "audio"), None)
+        
+        if not first_audio:
+            # No audio segments, just create silence
+            logger.warning("No audio segments in timeline, creating silence file")
+            total_duration = sum(t.get("duration", 0) for t in timeline if t["type"] == "silence")
+            cmd = [
+                'ffmpeg', '-y', '-v', 'error',
+                '-f', 'lavfi',
+                '-i', f'anullsrc=channel_layout=stereo:sample_rate=24000',
+                '-t', str(total_duration),
+                str(output_file)
+            ]
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            return
+        
+        # Probe first audio file for properties
+        probe_cmd = [
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'a:0',
+            '-show_entries', 'stream=sample_rate,channels',
+            '-of', 'json',
+            first_audio
+        ]
+        probe_result = subprocess.run(probe_cmd, capture_output=True, text=True, check=True)
+        audio_info = json.loads(probe_result.stdout)
+        sample_rate = audio_info['streams'][0]['sample_rate']
+        channels = audio_info['streams'][0]['channels']
+        
+        # Create silence files and build file list
+        filelist_path = silence_temp_dir / "filelist.txt"
+        silence_counter = 0
+        
+        with open(filelist_path, 'w') as f:
+            for element in timeline:
+                if element['type'] == 'silence':
+                    if element['duration'] > 0.001:  # Only create if > 1ms
+                        silence_file = silence_temp_dir / f"silence_{silence_counter}.wav"
+                        silence_cmd = [
+                            'ffmpeg', '-y', '-v', 'error',
+                            '-f', 'lavfi',
+                            '-i', f'anullsrc=channel_layout={"stereo" if channels == 2 else "mono"}:sample_rate={sample_rate}',
+                            '-t', str(element['duration']),
+                            str(silence_file)
+                        ]
+                        subprocess.run(silence_cmd, capture_output=True, text=True, check=True)
+                        f.write(f"file '{silence_file.absolute()}'\n")
+                        silence_counter += 1
+                else:
+                    # Audio segment
+                    f.write(f"file '{Path(element['path']).absolute()}'\n")
+        
+        # Final concatenation
+        cmd = [
+            'ffmpeg', '-y', '-v', 'error',
+            '-f', 'concat',
+            '-safe', '0',
+            '-i', str(filelist_path),
+            '-c', 'copy',
+            str(output_file)
+        ]
+        
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        logger.debug(f"Concatenated {len(timeline)} timeline elements to {output_file}")
+        
+    except subprocess.CalledProcessError as e:
+        logger.error(f"FFmpeg failed: {e.stderr if e.stderr else str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Timeline concatenation failed: {e}")
+        raise
+    finally:
+        # Clean up temp dir
+        shutil.rmtree(silence_temp_dir, ignore_errors=True)
+
+
+def _concatenate_timeline_ffmpeg(timeline: List[Dict], output_file: str):
+    """
+    Helper function to concatenate timeline elements using ffmpeg.
+    
+    Args:
+        timeline: List of {"type": "audio"|"silence", ...} dicts
+        output_file: Output file path
+    """
+    import tempfile
+    
+    silence_temp_dir = Path(tempfile.mkdtemp())
+    
+    try:
+        # Get audio properties from first audio segment
         first_audio = next(t["path"] for t in timeline if t["type"] == "audio")
         probe_cmd = [
             'ffprobe', '-v', 'error',
