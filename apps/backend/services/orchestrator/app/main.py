@@ -3207,17 +3207,10 @@ async def bulk_run(
                 }
             })
         
-        return {"batch_id": batch_id, "total": len(videos), "status": "queued", "gpus": 2}
+        return {"batch_id": batch_id, "total": len(videos), "status": "queued"}
 
 
 @app.get(f"{API_PREFIX}/jobs/bulk-status/{{batch_id}}")
-async def bulk_status(batch_id: str):
-    # FIX: Validate UUID format
-    try:
-        uuid.UUID(batch_id)
-    except ValueError:
-        raise HTTPException(400, "Invalid batch ID format")
-    
     job = BULK_JOBS.get(batch_id)
     if not job:
         raise HTTPException(404, "Batch not found")
