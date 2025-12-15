@@ -565,8 +565,13 @@ const handlers = {
         for (const block of lines) {
           const line = block.split("\n").find(l => l.startsWith("data:"));
           if (line) {
-            const data = JSON.parse(line.slice(5).trim());
-            this.handleEvent(data);
+            try {
+              const data = JSON.parse(line.slice(5).trim());
+              this.handleEvent(data);
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e, 'Line:', line.slice(5, 100));
+              // Continue processing other events even if one fails
+            }
           }
         }
       }
@@ -574,8 +579,12 @@ const handlers = {
       if (buffer.trim()) {
         const line = buffer.split("\n").find(l => l.startsWith("data:"));
         if (line) {
-          const data = JSON.parse(line.slice(5).trim());
-          this.handleEvent(data);
+          try {
+            const data = JSON.parse(line.slice(5).trim());
+            this.handleEvent(data);
+          } catch (e) {
+            console.error('Failed to parse final SSE data:', e, 'Line:', line.slice(5, 100));
+          }
         }
       }
     } catch (err) {
