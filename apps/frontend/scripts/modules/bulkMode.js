@@ -291,8 +291,8 @@ export const bulkMode = {
 
             // Show progress UI
             document.getElementById('bulk-progress').hidden = false;
-            document.getElementById('bulk-total').textContent = result.total;
-            document.getElementById('bulk-queued').textContent = result.total;
+            document.getElementById('batch-total').textContent = result.total;
+            document.getElementById('batch-queued').textContent = result.total;
 
             // Reset input counts
             document.getElementById('bulk-file-count').textContent = '';
