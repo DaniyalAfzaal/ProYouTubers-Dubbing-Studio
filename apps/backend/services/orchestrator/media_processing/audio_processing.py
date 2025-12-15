@@ -1088,25 +1088,31 @@ def overlay_on_background(dubbed_segments: List[Dict],
     else:
         return overlay_on_background_default(
             dubbed_segments, background_path, output_path, ducking_db
-    try:
-        out = subprocess.check_output(
-            [
-                "ffprobe",
-                "-v",
-                "error",
-                "-show_entries",
-                "format=duration",
-                "-of",
-                "default=noprint_wrappers=1:nokey=1",
-                resolved,
-            ],
-            text=True,
-        ).strip()
-        duration = float(out)
-    except (subprocess.CalledProcessError, ValueError, TypeError):
-        raise RuntimeError(f"Unable to determine duration for {resolved}")
+        )
 
-    with _duration_cache_lock:
-        _duration_cache[resolved] = duration
 
-    return duration
+# NOTE: get_audio_duration is imported from strict_timing module when available
+# Fallback implementation if strict_timing is not available
+if not STRICT_TIMING_AVAILABLE:
+    def get_audio_duration(path: Path | str) -> float:
+        """Get audio duration in seconds (fallback, ffprobe-based)."""
+        resolved = str(Path(path))
+        try:
+            out = subprocess.check_output(
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-show_entries",
+                    "format=duration",
+                    "-of",
+                    "default=noprint_wrappers=1:nokey=1",
+                    resolved,
+                ],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+            return float(out.strip())
+        except Exception as e:
+            logger.error(f"Failed to get audio duration for {resolved}: {e}")
+            raise
