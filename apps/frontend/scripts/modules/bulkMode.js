@@ -72,7 +72,7 @@ export const bulkMode = {
                     singleInputs.hidden = true;
                     bulkInputs.style.display = 'block';
                     bulkInputs.hidden = false;
-                    submitBtn.textContent = '🚀 Start Bulk Dubbing';
+                    if (submitBtn) submitBtn.textContent = '🚀 Start Bulk Dubbing';
                     console.log('BulkMode: Switched to BULK mode');
                 } else {
                     // Single mode selected
@@ -299,8 +299,10 @@ export const bulkMode = {
             document.getElementById('bulk-urls').value = '';
 
             // Re-enable button and mode toggle
-            submitBtn.disabled = false;
-            submitBtn.textContent = '🚀 Start Bulk Dubbing';
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Start Bulk Dubbing';
+            }
             modeRadios.forEach(r => r.disabled = false);
 
             toast.success(`Batch started! Processing ${result.total} videos`);
@@ -320,9 +322,12 @@ export const bulkMode = {
 
             toast.error(`Failed to start bulk dubbing: ${error.message}`);
 
+
             const submitBtn = document.querySelector('button[type="submit"]');
-            submitBtn.disabled = false;
-            submitBtn.textContent = '🚀 Start Bulk Dubbing';
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Start Bulk Dubbing';
+            }
             const modeRadios = document.querySelectorAll('[name="processing-mode"]');
             modeRadios.forEach(r => r.disabled = false);
         }
