@@ -290,15 +290,26 @@ export const bulkMode = {
             const result = await response.json();
 
             // Show progress UI
-            document.getElementById('bulk-progress').hidden = false;
-            document.getElementById('batch-total').textContent = result.total;
-            document.getElementById('batch-queued').textContent = result.total;
+            const progressSection = document.getElementById('bulk-progress');
+            if (progressSection) progressSection.hidden = false;
+
+            const batchTotal = document.getElementById('batch-total');
+            if (batchTotal) batchTotal.textContent = result.total;
+
+            const batchQueued = document.getElementById('batch-queued');
+            if (batchQueued) batchQueued.textContent = result.total;
 
             // Reset input counts
-            document.getElementById('bulk-file-count').textContent = '';
-            document.getElementById('bulk-url-count').textContent = '';
+            const fileCount = document.getElementById('bulk-file-count');
+            if (fileCount) fileCount.textContent = '';
+
+            const urlCount = document.getElementById('bulk-url-count');
+            if (urlCount) urlCount.textContent = '';
+
             filesInput.value = '';
-            document.getElementById('bulk-urls').value = '';
+
+            const urlsInput = document.getElementById('bulk-urls');
+            if (urlsInput) urlsInput.value = '';
 
             // Re-enable button and mode toggle
             if (submitBtn) {
