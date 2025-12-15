@@ -509,20 +509,40 @@ export const bulkMode = {
         return card;
     },
 
-    saveToDownloads(video) {
-        if (typeof downloads !== 'undefined' && downloads.saveProcess) {
-            const langs = Array.isArray(video.target_langs)
-                ? video.target_langs.join(', ')
-                : (video.target_langs || 'Multiple');
 
-            downloads.saveProcess({
-                name: video.name,
-                timestamp: Date.now(),
-                source: video.name,
-                languages: langs,
-                videoUrl: video.result.video_url,
-                logs: `Bulk dubbing completed successfully`
-            });
+    saveToDownloads(video) {
+        if (typeof downloads === 'undefined' || !downloads.saveProcess) {
+            return;
+        }
+
+        // Check localStorage for actual duplicates (not just Set)
+        const existing = downloads.getProcesses();
+        const isDuplicate = existing.some(p =>
+            p.videoUrl === video.result.video_url &&
+            p.name === video.name
+        );
+
+        if (isDuplicate) {
+            console.log(`Skipping duplicate download entry for: ${video.name}`);
+            return;
+        }
+
+        const langs = Array.isArray(video.target_langs)
+            ? video.target_langs.join(', ')
+            : (video.target_langs || 'Multiple');
+
+        const saved = downloads.saveProcess({
+            name: video.name,
+            timestamp: Date.now(),
+            source: video.name,
+            languages: langs,
+            videoUrl: video.result.video_url,
+            logs: `Bulk dubbing completed successfully for languages: ${langs}`,
+            mode: 'bulk'
+        });
+
+        if (saved) {
+            this.savedDownloads.add(video.name);
         }
     },
 

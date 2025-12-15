@@ -42,11 +42,28 @@ export const downloads = {
 
     loadProcesses() {
         const stored = localStorage.getItem('dubbing_processes');
-        // FIX: Wrap JSON.parse in try-catch
         try {
             this.processes = stored ? JSON.parse(stored) : [];
+
+            // Validate array structure
+            if (!Array.isArray(this.processes)) {
+                console.warn('Invalid processes data, resetting');
+                this.processes = [];
+            }
+
+            // Filter out invalid entries
+            this.processes = this.processes.filter(p =>
+                p && p.id && p.name && p.videoUrl
+            );
         } catch (e) {
             console.error('Failed to parse processes from localStorage:', e);
+
+            // Backup corrupted data
+            const corrupted = localStorage.getItem('dubbing_processes');
+            if (corrupted) {
+                localStorage.setItem('dubbing_processes_backup', corrupted);
+            }
+
             this.processes = [];
             localStorage.removeItem('dubbing_processes');
         }
@@ -54,29 +71,68 @@ export const downloads = {
     },
 
     saveProcess(processData) {
-        // FIX: Validate process data structure
+        // Validate process data structure
         if (!processData || !processData.timestamp || !processData.name) {
             console.error('Invalid process data:', processData);
-            return;
+            return false;
         }
+
+        // FIX: Check for duplicates before adding
+        const isDuplicate = this.processes.some(p =>
+            p.videoUrl === processData.videoUrl &&
+            p.timestamp === processData.timestamp
+        );
+
+        if (isDuplicate) {
+            console.log('Duplicate process detected, skipping');
+            return false;
+        }
+
+        // Add unique ID if not present
+        if (!processData.id) {
+            processData.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        }
+
         this.processes.unshift(processData);
-        if (this.processes.length > 50) this.processes.pop();
+
+        // Limit to 50 most recent
+        if (this.processes.length > 50) {
+            this.processes = this.processes.slice(0, 50);
+        }
+
+        return this.saveToStorage();
+    },
+
+    saveToStorage() {
         try {
             localStorage.setItem('dubbing_processes', JSON.stringify(this.processes));
+            return true;
         } catch (e) {
-            // FIX: Handle quota exceeded error
             if (e.name === 'QuotaExceededError') {
-                console.warn('localStorage quota exceeded, removing oldest half');
+                console.warn('localStorage quota exceeded, trimming to 25 entries');
                 this.processes = this.processes.slice(0, 25);
+
                 try {
                     localStorage.setItem('dubbing_processes', JSON.stringify(this.processes));
+
+                    // Notify user if toast is available
+                    if (typeof toast !== 'undefined') {
+                        toast.warn('Download history trimmed due to storage limit');
+                    }
+                    return true;
                 } catch (retryError) {
                     console.error('Failed to save even after cleanup:', retryError);
+                    return false;
                 }
             } else {
                 console.error('Failed to save processes to localStorage:', e);
+                return false;
             }
         }
+    },
+
+    getProcesses() {
+        return this.processes;
     },
 
     renderProcessList() {
@@ -240,16 +296,37 @@ export const downloads = {
     deleteProcess(index) {
         if (index >= 0 && index < this.processes.length) {
             this.processes.splice(index, 1);
-            try {
-                localStorage.setItem('dubbing_processes', JSON.stringify(this.processes));
-            } catch (e) {
-                console.error('Failed to update localStorage after delete:', e);
-            }
+            this.saveToStorage();
             this.renderProcessList();
         }
     },
 
-    // FIX: Add helper functions
+    clearAll() {
+        if (confirm('Are you sure you want to clear all download history? This cannot be undone.')) {
+            this.processes = [];
+            localStorage.removeItem('dubbing_processes');
+            this.renderProcessList();
+
+            if (typeof toast !== 'undefined') {
+                toast.success('Download history cleared');
+            }
+        }
+    },
+
+    // Auto-cleanup old entries (optional - can be called on init)
+    autoCleanupOldEntries(daysToKeep = 30) {
+        const cutoffTime = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
+        const initialCount = this.processes.length;
+
+        this.processes = this.processes.filter(p => p.timestamp > cutoffTime);
+
+        if (this.processes.length < initialCount) {
+            this.saveToStorage();
+            console.log(`Cleaned up ${initialCount - this.processes.length} old entries`);
+        }
+    },
+
+    // Helper functions
     truncateName(name) {
         return name.length > 40 ? name.substring(0, 37) + '...' : name;
     },
@@ -265,7 +342,6 @@ export const downloads = {
         if (process.duration && process.duration !== 'N/A' && process.duration !== 'Unknown') {
             return process.duration;
         }
-        // Try to estimate from logs or video URL metadata
         return 'Unknown';
     }
 };
