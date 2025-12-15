@@ -84,24 +84,34 @@ export const ui = {
 
     if (!active) {
       el.download.progress.hidden = true;
-      el.download.bar.style.width = "0%";
-      el.download.bar.style.animation = "none";
-      el.download.label.hidden = !label;
-      if (label) el.download.label.textContent = label;
+      if (el.download.bar) {
+        el.download.bar.style.width = "0%";
+        el.download.bar.style.animation = "none";
+      }
+      if (el.download.label) {
+        el.download.label.hidden = !label;
+        if (label) el.download.label.textContent = label;
+      }
       return;
     }
 
     el.download.progress.hidden = false;
-    el.download.label.hidden = false;
-    el.download.label.textContent = label || "Downloading…";
+    if (el.download.label) {
+      el.download.label.hidden = false;
+      el.download.label.textContent = label || "Downloading…";
+    }
 
     if (progress !== null) {
       const pct = Math.min(100, Math.max(0, progress));
-      el.download.bar.style.width = `${pct}%`;
-      el.download.bar.style.animation = "none";
+      if (el.download.bar) {
+        el.download.bar.style.width = `${pct}%`;
+        el.download.bar.style.animation = "none";
+      }
     } else {
-      el.download.bar.style.width = "30%";
-      el.download.bar.style.animation = "progressPulse 1s ease-in-out infinite alternate";
+      if (el.download.bar) {
+        el.download.bar.style.width = "30%";
+        el.download.bar.style.animation = "progressPulse 1s ease-in-out infinite alternate";
+      }
     }
   },
 
