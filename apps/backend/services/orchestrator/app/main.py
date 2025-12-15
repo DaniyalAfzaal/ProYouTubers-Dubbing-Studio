@@ -2146,7 +2146,9 @@ async def dub(
         background_path: Optional[Path] = None
 
         vocal_for_transcript = general_cfg.get("vocal_only_for_transcription", True)
-        # strict_segment_timing already parsed from form data above (line ~830)
+        # Initialize strict_segment_timing with default from config (may be overridden by form data if available)
+        if 'strict_segment_timing' not in locals():
+            strict_segment_timing = general_cfg.get("strict_segment_timing", {}).get("enabled", True)
         logger.info("Vocal only for transcription: %s", vocal_for_transcript)
 
         if target_work != "sub" or vocal_for_transcript: # in subtitle-only mode, no need to separate audio for now: in future we might want to do it for better ASR performance if we succeed to implement automatic noise level detection
