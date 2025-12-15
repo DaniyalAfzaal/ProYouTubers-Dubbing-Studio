@@ -2005,9 +2005,24 @@ async def pipeline_run(
         asyncio.create_task(cleanup_after_completion())
 
         async def event_stream():
+            task = asyncio.create_task(run_pipeline())
+            try:
+                while True:
+                    event = await queue.get()
+                    yield f"data: {json.dumps(event)}\n\n"
+                    if event.get("type") == "complete":
+                        break
+            finally:
+                if not task.done():
+                    task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+                except Exception:
+                    logger.exception("Pipeline task raised after completion", exc_info=True)
 
-
-@app.post(f"{API_PREFIX}/jobs/cancel/{{run_id}}")
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
 async def cancel_job(run_id: str):
     """
     FIX Issue #4: Cancel a running single mode job.
