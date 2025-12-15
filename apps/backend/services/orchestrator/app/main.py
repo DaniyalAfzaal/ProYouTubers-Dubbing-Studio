@@ -1396,6 +1396,7 @@ async def concatenate_segments(
     output_file: Path,
     target_duration: float,
     translation_segments: List[Dict[str, Any]],
+    strict_segment_timing: bool = True,  # NEW: Accept as parameter with default
 ) -> Tuple[str, Optional[List[Dict[str, Any]]]]:
     return await run_in_thread(
         concatenate_audio,
@@ -1405,7 +1406,7 @@ async def concatenate_segments(
         alpha=general_cfg.get("concatenation", {}).get("alpha", 0.25),
         min_dur=general_cfg.get("concatenation", {}).get("min_dur", 0.4),
         translation_segments=translation_segments,
-        # Use UI choice from form (parsed earlier), fallback to config if not set
+        # Use parameter value, fallback to config if not explicitly set
         strict_timing=strict_segment_timing if strict_segment_timing is not None else general_cfg.get("strict_segment_timing", {}).get("enabled", True),
         max_speed_ratio=float(general_cfg.get("strict_segment_timing", {}).get("max_speed_ratio", 1.35))
     )
@@ -2535,11 +2536,12 @@ async def dub(
                 speech_track = audio_processing_dir / f"dubbed_speech_track_{lang}.wav"
                 with step_timer.time(f"audio_concatenate{lang_suffix}"):
                     concatenated_path, translation_segments = await concatenate_segments(
-                        tts_result.model_dump()["segments"],
-                        speech_track,
-                        target_duration=raw_audio_duration,
-                        translation_segments=tr_result_local.model_dump()["segments"],
-                    )
+                    tts_segments=tts_result.model_dump()["segments"],
+                    output_file=speech_track,
+                    target_duration=raw_audio_duration,
+                    translation_segments=tr_result_local.model_dump()["segments"],
+                    strict_segment_timing=strict_segment_timing,  # NEW: Pass the variable
+                )
                 final_audio_path = Path(concatenated_path)
 
                 if dubbing_strategy == "full_replacement" and background_path:
