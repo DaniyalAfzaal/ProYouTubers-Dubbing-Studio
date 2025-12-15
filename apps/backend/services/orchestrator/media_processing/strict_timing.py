@@ -19,6 +19,32 @@ import pyrubberband as prb
 
 logger = logging.getLogger(__name__)
 
+# ============================================================
+# CONSTANTS
+# ============================================================
+
+MIN_SPEED_RATIO = 1.0
+MAX_SPEED_RATIO = 2.0
+DEFAULT_SPEED_RATIO = 1.35
+FFMPEG_TIMEOUT_SECONDS = 300  # 5 minutes max per FFmpeg operation
+MIN_SEGMENT_DURATION_MS = 10  # Minimum 10ms segments
+
+def validate_speed_ratio(ratio: float) -> float:
+    """Validate and clamp speed ratio to safe range."""
+    if not isinstance(ratio, (int, float)):
+        logger.error(f"Invalid speed ratio type: {type(ratio).__name__}, using default {DEFAULT_SPEED_RATIO}")
+        return DEFAULT_SPEED_RATIO
+    
+    if ratio < MIN_SPEED_RATIO:
+        logger.error(f"Speed ratio {ratio:.2f} < {MIN_SPEED_RATIO}, using default {DEFAULT_SPEED_RATIO}")
+        return DEFAULT_SPEED_RATIO
+    
+    if ratio > MAX_SPEED_RATIO:
+        logger.warning(f"Speed ratio {ratio:.2f} > {MAX_SPEED_RATIO}, capping at {MAX_SPEED_RATIO} to prevent severe distortion")
+        return MAX_SPEED_RATIO
+    
+    return float(ratio)
+
 
 # ============================================================
 # HELPER FUNCTIONS (needed by strict timing)
@@ -41,27 +67,53 @@ def get_audio_duration(audio_path: Union[str, Path]) -> float:
 def rubberband_to_duration(in_wav, target_ms, out_wav):
     """
     Adjust audio duration using Rubberband with high-quality settings.
+    Includes validation and error handling.
     """
     in_wav_path = str(in_wav) if isinstance(in_wav, Path) else in_wav
-    y, sr = sf.read(in_wav_path, always_2d=False, dtype="float32")
+    
+    try:
+        y, sr = sf.read(in_wav_path, always_2d=False, dtype="float32")
+    except Exception as e:
+        logger.error(f"Failed to read audio file {in_wav_path}: {e}")
+        # Copy original as fallback
+        shutil.copy(in_wav, out_wav)
+        return out_wav
+
+    # Validate target duration
+    if target_ms < MIN_SEGMENT_DURATION_MS:
+        logger.error(f"Invalid target duration {target_ms}ms < {MIN_SEGMENT_DURATION_MS}ms, copying original")
+        shutil.copy(in_wav, out_wav)
+        return out_wav
 
     # Compute target and current samples
     target_samples = int(round(target_ms * sr / 1000))
     current_samples = y.shape[0]
+    
+    # Validate target_samples to prevent division by zero
+    if target_samples <= 0:
+        logger.error(f"Invalid target_samples {target_samples} for {target_ms}ms, copying original")
+        shutil.copy(in_wav, out_wav)
+        return out_wav
+    
     rate = current_samples / target_samples
 
     logger.debug(f"Rubberband: {current_samples/sr:.3f}s → {target_ms/1000:.3f}s (rate={rate:.3f}x)")
 
-    # Time-stretch using pyrubberband
-    y2 = prb.time_stretch(
-        y,
-        sr,
-        rate,
-        rbargs={
-            "--formant": "",
-            "--pitch-hq": ""
-        }
-    )
+    # Time-stretch using pyrubberband with error handling
+    try:
+        y2 = prb.time_stretch(
+            y,
+            sr,
+            rate,
+            rbargs={
+                "--formant": "",
+                "--pitch-hq": ""
+            }
+        )
+    except Exception as e:
+        logger.error(f"Rubberband time_stretch failed: {e}, copying original audio")
+        shutil.copy(in_wav, out_wav)
+        return out_wav
 
     # Pad or trim to exact length
     current_length = y2.shape[0] if y2.ndim > 1 else len(y2)
@@ -77,7 +129,12 @@ def rubberband_to_duration(in_wav, target_ms, out_wav):
         else:
             y2 = y2[:target_samples, :]
 
-    sf.write(out_wav, y2, sr)
+    try:
+        sf.write(out_wav, y2, sr)
+    except Exception as e:
+        logger.error(f"Failed to write output file {out_wav}: {e}")
+        raise
+    
     return out_wav
 
 
@@ -281,6 +338,9 @@ def concatenate_audio_strict_timing(
     if len(segments) < 1:
         raise ValueError("At least 1 segment is required")
     
+    # Validate max_speed_ratio
+    max_speed_ratio = validate_speed_ratio(max_speed_ratio)
+    
     logger.info("\n" + "="*60)
     logger.info("🎯 STRICT SEGMENT-BY-SEGMENT TIMING SYNCHRONIZATION")
     logger.info("="*60)
@@ -462,7 +522,7 @@ def _concatenate_timeline_ffmpeg(timeline: List[Dict], output_file: str):
                 '-t', str(total_duration),
                 str(output_file)
             ]
-            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=FFMPEG_TIMEOUT_SECONDS)
             return
         
         # Probe first audio file for properties

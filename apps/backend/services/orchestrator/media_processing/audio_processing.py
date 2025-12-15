@@ -19,7 +19,8 @@ try:
     from .strict_timing import (
         concatenate_audio_strict_timing,
         adjust_segment_to_exact_timing,
-        calculate_segment_timing_stats
+        calculate_segment_timing_stats,
+        get_audio_duration  # Use canonical implementation from strict_timing
     )
     STRICT_TIMING_AVAILABLE = True
 except ImportError as e:
@@ -1087,16 +1088,6 @@ def overlay_on_background(dubbed_segments: List[Dict],
     else:
         return overlay_on_background_default(
             dubbed_segments, background_path, output_path, ducking_db
-        )
-
-def get_audio_duration(path: Path | str) -> float:
-    """Get audio duration in seconds (cached, ffprobe-based)."""
-    resolved = str(Path(path))
-    with _duration_cache_lock:
-        cached = _duration_cache.get(resolved)
-        if cached is not None:
-            return cached
-
     try:
         out = subprocess.check_output(
             [
