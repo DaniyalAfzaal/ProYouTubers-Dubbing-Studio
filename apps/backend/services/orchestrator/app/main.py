@@ -3212,6 +3212,7 @@ async def bulk_run(
 
 @app.get(f"{API_PREFIX}/jobs/bulk-status/{{batch_id}}")
 async def bulk_status(batch_id: str):
+    """Get real-time status of a bulk dubbing batch for UI updates."""
     job = BULK_JOBS.get(batch_id)
     if not job:
         raise HTTPException(404, "Batch not found")
