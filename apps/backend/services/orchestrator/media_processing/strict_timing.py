@@ -20,6 +20,72 @@ import pyrubberband as prb
 logger = logging.getLogger(__name__)
 
 
+# ============================================================
+# HELPER FUNCTIONS (needed by strict timing)
+# ============================================================
+
+def get_audio_duration(audio_path: Union[str, Path]) -> float:
+    """Get duration of audio file in seconds."""
+    audio_path = Path(audio_path)
+    if not audio_path.exists():
+        raise FileNotFoundError(f"Audio file not found: {audio_path}")
+    
+    try:
+        info = sf.info(str(audio_path))
+        return float(info.duration)
+    except Exception as e:
+        logger.error(f"Failed to get audio duration for {audio_path}: {e}")
+        raise
+
+
+def rubberband_to_duration(in_wav, target_ms, out_wav):
+    """
+    Adjust audio duration using Rubberband with high-quality settings.
+    """
+    in_wav_path = str(in_wav) if isinstance(in_wav, Path) else in_wav
+    y, sr = sf.read(in_wav_path, always_2d=False, dtype="float32")
+
+    # Compute target and current samples
+    target_samples = int(round(target_ms * sr / 1000))
+    current_samples = y.shape[0]
+    rate = current_samples / target_samples
+
+    logger.debug(f"Rubberband: {current_samples/sr:.3f}s → {target_ms/1000:.3f}s (rate={rate:.3f}x)")
+
+    # Time-stretch using pyrubberband
+    y2 = prb.time_stretch(
+        y,
+        sr,
+        rate,
+        rbargs={
+            "--formant": "",
+            "--pitch-hq": ""
+        }
+    )
+
+    # Pad or trim to exact length
+    current_length = y2.shape[0] if y2.ndim > 1 else len(y2)
+    if current_length < target_samples:
+        pad = target_samples - current_length
+        if y2.ndim == 1:
+            y2 = np.concatenate([y2, np.zeros(pad, dtype=y2.dtype)])
+        else:
+            y2 = np.vstack([y2, np.zeros((pad, y2.shape[1]), dtype=y2.dtype)])
+    elif current_length > target_samples:
+        if y2.ndim == 1:
+            y2 = y2[:target_samples]
+        else:
+            y2 = y2[:target_samples, :]
+
+    sf.write(out_wav, y2, sr)
+    return out_wav
+
+
+# ============================================================
+# STRICT TIMING FUNCTIONS
+# ============================================================
+
+
 def adjust_segment_to_exact_timing(
     segment_audio_path: str,
     expected_start: float,
