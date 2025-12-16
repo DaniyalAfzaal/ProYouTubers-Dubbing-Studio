@@ -323,20 +323,10 @@ export const bulkMode = {
 
             toast.success(`Batch started! Processing ${result.total} videos`);
 
-            // UX Improvement #2: Clear inputs after successful submission
-            const filesInput = document.getElementById('bulk-files');
-            const urlsTextarea = document.getElementById('bulk-urls');
-            const fileCountEl = document.getElementById('bulk-file-count');
-            const urlCountEl = document.getElementById('bulk-url-count');
-
-            if (filesInput) filesInput.value = '';
-            if (urlsTextarea) urlsTextarea.value = '';
-            if (fileCountEl) fileCountEl.textContent = '';
-            if (urlCountEl) urlCountEl.textContent = '';
-
             // Start polling for updates
             this.currentBatchId = result.batch_id;
             this.startPolling(result.batch_id);
+
 
         } catch (error) {
             console.error('Failed to start bulk dubbing:', error);
