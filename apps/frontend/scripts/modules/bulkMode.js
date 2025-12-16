@@ -225,6 +225,9 @@ export const bulkMode = {
             return;
         }
 
+        // UX Improvement #1: Show count for better user feedback
+        toast.info(`🚀 Submitting batch with ${totalVideos} video${totalVideos > 1 ? 's' : ''}...`);
+
         // Disable mode toggle during submission
         const modeRadios = document.querySelectorAll('[name="processing-mode"]');
         modeRadios.forEach(r => r.disabled = true);
@@ -319,6 +322,17 @@ export const bulkMode = {
             modeRadios.forEach(r => r.disabled = false);
 
             toast.success(`Batch started! Processing ${result.total} videos`);
+
+            // UX Improvement #2: Clear inputs after successful submission
+            const filesInput = document.getElementById('bulk-files');
+            const urlsTextarea = document.getElementById('bulk-urls');
+            const fileCountEl = document.getElementById('bulk-file-count');
+            const urlCountEl = document.getElementById('bulk-url-count');
+
+            if (filesInput) filesInput.value = '';
+            if (urlsTextarea) urlsTextarea.value = '';
+            if (fileCountEl) fileCountEl.textContent = '';
+            if (urlCountEl) urlCountEl.textContent = '';
 
             // Start polling for updates
             this.currentBatchId = result.batch_id;
