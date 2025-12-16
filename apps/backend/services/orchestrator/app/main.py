@@ -1510,6 +1510,17 @@ async def finalize_media(
 async def startup_event() -> None:
     timeout = httpx.Timeout(connect=10.0, read=1200.0, write=10.0, pool=None) # think changing the value of the pool in the future for more robustness
     app.state.http_client = httpx.AsyncClient(timeout=timeout)
+    logger.info("Starting orchestrator service...")
+    
+    # DIAGNOSTIC: Check strict timing availability
+    try:
+        from media_processing import strict_timing
+        logger.info("✅ Strict timing module loaded successfully")
+        logger.info(f"   Available functions: concatenate_audio_strict_timing, adjust_segment_to_exact_timing")
+    except ImportError as e:
+        logger.error(f"❌ CRITICAL: Strict timing module import failed: {e}")
+        logger.error("   Audio will use legacy centering mode (may cause slow-down in sparse dialogue)")
+        logger.error("   This means ElevenLabs-style timing is NOT active!")
     OUTS.mkdir(parents=True, exist_ok=True)
     SEPARATION_CACHE.mkdir(parents=True, exist_ok=True)
     RAW_AUDIO_CACHE.mkdir(parents=True, exist_ok=True)
