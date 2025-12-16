@@ -2912,17 +2912,21 @@ async def cleanup_batch_files(batch_id: str):
         # Cleanup temp files
         job = BULK_JOBS.get(batch_id)
         if job and job.temp_files:
-            for temp_file in job.temp_files:
-                try:
-                    if temp_file.exists():
-                        temp_file.unlink()
-                        logger.debug(f"Deleted temp file: {temp_file}")
-                except Exception as e:
-                    logger.warning(f"Failed to delete temp file {temp_file}: {e}")
-        
-        # Remove job from memory
-        BULK_JOBS.pop(batch_id, None)
-        logger.info(f"Cleaned up batch {batch_id}")
+            try: # FIX Bug #12: Wrap cleanup in try-catch to prevent loop death
+                for temp_file in job.temp_files:
+                    try:
+                        if temp_file.exists():
+                            temp_file.unlink()
+                            logger.debug(f"Deleted temp file: {temp_file}")
+                    except Exception as e:
+                        logger.warning(f"Failed to delete temp file {temp_file}: {e}")
+                
+                # Remove job from memory
+                BULK_JOBS.pop(batch_id, None)
+                logger.info(f"Cleaned up batch {batch_id}")
+            except Exception as e:
+                # Log but don't crash - let other cleanup tasks continue
+                logger.error(f"Cleanup task failed for batch {batch_id}: {e}", exc_info=True)
         
     except Exception as e:
         logger.error(f"Cleanup failed for batch {batch_id}: {e}", exc_info=True)
@@ -3009,18 +3013,26 @@ async def bulk_worker(worker_id: int):
                         involve_mode=False,
                     )
                     
+                    # FIX Bug #11: Update data first (thread-safe for dict), then lock only for counters
+                    job.videos[video_index]['status'] = 'completed'
+                    job.videos[video_index]['result'] = result
+                    
                     async with job.lock:
                         job.processing -= 1
                         job.completed += 1
-                        job.videos[video_index]['status'] = 'completed'
-                        job.videos[video_index]['result'] = result
                 except Exception as e:
-                    logger.error(f"Worker {worker_id} failed: {e}", exc_info=True)
+                    # FIX Bug #13: Improved error logging for worker failures
+                    logger.error(f"Worker {worker_id} failed processing video {video_index}: {e}", exc_info=True)
+                    
+                    # FIX Bug #11: Update data first, then lock for counters  
+                    # FIX Bug #10: Safe error conversion
+                    error_msg = str(e)[:500] if e else 'Unknown error'
+                    job.videos[video_index]['status'] = 'failed'
+                    job.videos[video_index]['error'] = error_msg
+                    
                     async with job.lock:
                         job.processing -= 1
                         job.failed += 1
-                        job.videos[video_index]['status'] = 'failed'
-                        job.videos[video_index]['error'] = str(e)[:500]
         except Exception as e:
             logger.error(f"Worker {worker_id} error: {e}", exc_info=True)
         finally:
@@ -3233,7 +3245,7 @@ async def bulk_status(batch_id: str):
             "completed": job.completed,
             "failed": job.failed,
             "processing": job.processing,
-            "queued": job.total - job.completed - job.failed - job.processing,
+            "queued": max(0, job.total - job.completed - job.failed - job.processing),
             # FIX: Deep copy to prevent frontend mutation of backend state
             "videos": [
                 {
