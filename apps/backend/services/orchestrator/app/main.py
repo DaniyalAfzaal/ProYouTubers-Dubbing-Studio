@@ -3239,7 +3239,8 @@ async def bulk_status(batch_id: str):
                 {
                     "name": v.get("name"),
                     "status": v.get("status"),
-                    "error": v.get("error")
+                    "error": v.get("error"),
+                    "result": v.get("result")  # Include download URLs and output info
                 }
                 for v in job.videos
             ]
