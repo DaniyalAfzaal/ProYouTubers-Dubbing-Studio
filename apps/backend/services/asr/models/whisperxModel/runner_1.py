@@ -50,18 +50,23 @@ if __name__ == "__main__":
 
             device = extra.get("device") or os.getenv("WHISPERX_DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
             
-            # FIX: Properly initialize CUDA in subprocess
+            # FIX: Properly initialize CUDA in subprocess with explicit device selection
             if device == "cuda" and torch.cuda.is_available():
                 try:
-                    # Initialize CUDA context by creating a test tensor
+                    # Initialize CUDA context and set device 0
+                    torch.cuda.init()
+                    torch.cuda.set_device(0)
+                    # Test tensor to ensure CUDA works
                     _ = torch.zeros(1).cuda()
-                    logger.info(f"✅ CUDA initialized successfully on device {torch.cuda.get_device_name(0)}")
+                    gpu_name = torch.cuda.get_device_name(0)
+                    gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+                    logger.info(f"✅ CUDA initialized: {gpu_name} ({gpu_memory:.1f}GB)")
                 except (RuntimeError, AssertionError) as e:
                     logger.warning(f"⚠️ CUDA initialization failed: {e}. Falling back to CPU")
                     device = "cpu"
             
             if device == "cpu":
-                logger.info("Running alignment on CPU.")
+                logger.warning("⚠️ Running alignment on CPU - timestamps may be less accurate")
 
 
             logger.info(
@@ -75,24 +80,41 @@ if __name__ == "__main__":
 
             audio = whisperx.load_audio(req.audio_url)
 
+            # Clear GPU cache before loading alignment model
+            if device == "cuda":
+                _clear_cuda_cache()
+                logger.info(f"GPU memory before alignment: {torch.cuda.memory_allocated()/1024**2:.1f}MB")
+            
             align_start = time.perf_counter()
             try:
                 model_a, metadata = whisperx.load_align_model(
                     language_code=req.language,
                     device=device,
                 )
+                logger.info(f"✅ Alignment model loaded on {device}")
             except RuntimeError as e:
                 if "CUDA" in str(e) and device == "cuda":
-                    logger.warning(f"Failed to load alignment model on CUDA: {e}. Retrying on CPU...")
+                    logger.warning(f"❌ Failed to load alignment model on CUDA: {e}. Retrying on CPU...")
                     device = "cpu"
                     model_a, metadata = whisperx.load_align_model(
                         language_code=req.language,
                         device=device,
                     )
+                    logger.info(f"✅ Alignment model loaded on CPU (fallback)")
                 else:
                     raise
             logger.info("Loaded alignment model in %.2fs.", time.perf_counter() - align_start)
 
+            # FIX: Add conservative VAD parameters for better timestamp accuracy
+            # These reduce false positives and improve sync with actual speech
+            vad_parameters = {
+                "onset": 0.75,  # Higher = wait for clearer speech start (less early detection)
+                "offset": 0.75,  # Higher = stop earlier when speech ends (less late detection)
+                "min_speech_duration_ms": 200,  # Ignore very short sounds < 200ms
+                "min_silence_duration_ms": 150,  # Require clear gaps between speech
+                "speech_pad_ms": 80,  # Reduced padding around detected speech (was ~400ms default)
+            }
+            
             align_compute_start = time.perf_counter()
             result = whisperx.align(
                 req_dict["segments"],
@@ -101,8 +123,21 @@ if __name__ == "__main__":
                 audio,
                 device,
                 return_char_alignments=False,
+                vad_filter=True,  # Enable VAD filtering
+                vad_parameters=vad_parameters  # Use conservative parameters
             )
             logger.info("Alignment completed in %.2fs.", time.perf_counter() - align_compute_start)
+            
+            # DIAGNOSTIC: Log segment timing for verification
+            logger.info("📊 Alignment Quality Check:")
+            aligned_segments = result.get("segments", [])
+            for i, seg in enumerate(aligned_segments[:5]):  # Log first 5 segments
+                duration = seg['end'] - seg['start']
+                text_preview = seg.get('text', '')[:60]
+                logger.info(f"   Segment {i}: [{seg['start']:.2f}-{seg['end']:.2f}s] dur={duration:.2f}s")
+                logger.info(f"      Text: '{text_preview}...'")
+            if len(aligned_segments) > 5:
+                logger.info(f"   ... and {len(aligned_segments) - 5} more segments")
 
             diarize_segments = None
             if diarize_enabled and diarization_model_name:
@@ -144,10 +179,13 @@ if __name__ == "__main__":
                 extra=extra,
             )
 
+            # Clean up GPU memory
             del audio
             del model_a
             gc.collect()
-            _clear_cuda_cache()
+            if device == "cuda" and torch.cuda.is_available():
+                _clear_cuda_cache()
+                logger.info(f"GPU memory after cleanup: {torch.cuda.memory_allocated()/1024**2:.1f}MB")
 
         sys.stdout.write(json.dumps(out.model_dump(), indent=2) + "\n")
         sys.stdout.flush()
