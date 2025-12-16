@@ -39,6 +39,17 @@ default_models:
   tts: "chatterbox"
   sep: "melband_roformer_big_beta5e.ckpt"
 
+
 prompt_attachment:
   min_duration: 1.0
   max_duration: 40.0
+
+# VAD Timestamp Correction
+# Fixes inaccurate VAD timestamps caused by detecting pre-speech sounds (breaths, noise)
+vad:
+  timestamp_correction:
+    enabled: true                      # Enable automatic offset correction
+    auto_detect_silence: true          # Automatic silence detection via energy analysis
+    manual_offset_seconds: 0.0         # Manual adjustment in seconds (+ or -)
+    silence_threshold_percentile: 10   # Noise floor calculation (10th percentile)
+    energy_multiplier: 3.0             # Speech vs silence threshold (3x = balanced)

@@ -2361,6 +2361,45 @@ async def dub(
         if len(raw_asr_result.segments) > 5:
             logger.info(f"   ... and {len(raw_asr_result.segments) - 5} more segments")
         
+        # ============================================================
+        # VAD Timestamp Offset Correction
+        # ============================================================
+        # Automatically detects real speech start and applies offset
+        # to correct inaccurate VAD timestamps (e.g., 0.03s -> 0.79s)
+        # Combines automatic silence detection + manual override
+        # ============================================================
+        
+        from ..media_processing.vad_offset import calculate_vad_offset, apply_offset_to_segments
+        
+        try:
+            if raw_asr_result.segments:
+                auto_offset, manual_offset, total_offset = calculate_vad_offset(
+                    audio_path=vocals_path,
+                    vad_first_segment_start=raw_asr_result.segments[0].start,
+                    config=general_cfg
+                )
+                
+                if total_offset > 0:
+                    logger.info(f"🔧 Applying VAD offset correction:")
+                    logger.info(f"   Auto-detected: {auto_offset:+.2f}s")
+                    logger.info(f"   Manual:        {manual_offset:+.2f}s")
+                    logger.info(f"   Total:         {total_offset:+.2f}s")
+                    
+                    # Apply to raw ASR
+                    apply_offset_to_segments(raw_asr_result.segments, total_offset)
+                    
+                    # Apply to aligned ASR
+                    if aligned_asr_result:
+                        apply_offset_to_segments(aligned_asr_result.segments, total_offset)
+                    
+                    # Log corrected timestamps
+                    logger.info("📊 Corrected ASR Timestamps:")
+                    for i, seg in enumerate(raw_asr_result.segments[:3]):
+                        logger.info(f"   Segment {i}: [{seg.start:.2f}-{seg.end:.2f}s]")
+                        
+        except Exception as e:
+            logger.warning(f"VAD offset correction failed: {e}, using original timestamps")
+        
 
 
         if aligned_asr_result is None:
