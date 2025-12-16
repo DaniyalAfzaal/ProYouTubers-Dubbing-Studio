@@ -2801,7 +2801,9 @@ async def dub(
 
         final_result: Dict[str, Any] = {
             "workspace_id": workspace.workspace_id,
-            "final_video_path": final_video_path,
+            # FIX: Return download URL for bulk mode compatibility
+            # Extract filename from path and construct download URL
+            "final_video_path": f"/api/download/{workspace.workspace_id}/{Path(final_video_path).name}" if final_video_path else "",
             "final_audio_path": default_audio_path,
             "speech_track": default_speech_track,
             "source_media": original_source,
