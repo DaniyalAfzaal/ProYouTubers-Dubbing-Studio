@@ -2183,6 +2183,10 @@ async def dub(
         translation_strategy = TRANSLATION_STRATEGIES[0]
     if dubbing_strategy not in DUBBING_STRATEGIES:
         dubbing_strategy = DUBBING_STRATEGIES[0]
+    
+    # CRITICAL FIX: Initialize strict_segment_timing (was undefined, causing fallback to legacy mode)
+    # This enables ElevenLabs-style segment-by-segment timing instead of global stretching
+    strict_segment_timing = general_cfg.get("strict_segment_timing", {}).get("enabled", True)
 
     workspace = WorkspaceManager.create(OUTS, persist_intermediate)
     step_timer = StepTimer()
