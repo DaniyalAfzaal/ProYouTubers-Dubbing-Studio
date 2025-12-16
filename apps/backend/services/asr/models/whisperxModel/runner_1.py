@@ -105,15 +105,6 @@ if __name__ == "__main__":
                     raise
             logger.info("Loaded alignment model in %.2fs.", time.perf_counter() - align_start)
 
-            # FIX: Add conservative VAD parameters for better timestamp accuracy
-            # These reduce false positives and improve sync with actual speech
-            vad_parameters = {
-                "onset": 0.80,  # Increased from 0.75 → more conservative (wait for clearer speech)
-                "offset": 0.80,  # Increased from 0.75 → stop earlier when speech ends
-                "min_speech_duration_ms": 200,  # Ignore very short sounds < 200ms
-                "min_silence_duration_ms": 150,  # Require clear gaps between speech
-                "speech_pad_ms": 30,  # REDUCED from 80ms → minimizes cumulative drift
-            }
             
             align_compute_start = time.perf_counter()
             result = whisperx.align(
@@ -122,9 +113,7 @@ if __name__ == "__main__":
                 metadata,
                 audio,
                 device,
-                return_char_alignments=False,
-                vad_filter=True,  # Enable VAD filtering
-                vad_parameters=vad_parameters  # Use conservative parameters
+                return_char_alignments=False
             )
             logger.info("Alignment completed in %.2fs.", time.perf_counter() - align_compute_start)
             
