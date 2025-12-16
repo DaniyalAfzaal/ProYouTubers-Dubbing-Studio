@@ -105,6 +105,56 @@ if __name__ == "__main__":
                     raise
             logger.info("Loaded alignment model in %.2fs.", time.perf_counter() - align_start)
 
+            # ============================================================
+            # SILERO VAD VERIFICATION (Alignment Quality Check)
+            # ============================================================
+            # Run Silero VAD for comparison with ASR-detected timestamps.
+            # This helps verify if Silero provides better timestamping than
+            # the original Pyannote VAD used during transcription.
+            # ============================================================
+            try:
+                from .vad_utils import detect_speech_segments
+                
+                logger.info("🔍 Running Silero VAD for timestamp quality verification...")
+                
+                vad_verification_segments = detect_speech_segments(
+                    audio,
+                    sampling_rate=16000,
+                    min_speech_duration_ms=250,
+                    min_silence_duration_ms=100,
+                    speech_pad_ms=30
+                )
+                
+                if vad_verification_segments and req_dict.get("segments"):
+                    logger.info("📊 VAD Quality Comparison:")
+                    logger.info(f"   Silero detected:  {len(vad_verification_segments)} segments")
+                    logger.info(f"   ASR detected:     {len(req_dict['segments'])} segments")
+                    
+                    if vad_verification_segments and req_dict["segments"]:
+                        silero_first = vad_verification_segments[0]
+                        asr_first = req_dict["segments"][0]
+                        timestamp_diff = asr_first['start'] - silero_first['start']
+                        
+                        logger.info(f"   Silero 1st start: {silero_first['start']:.2f}s")
+                        logger.info(f"   ASR 1st start:    {asr_first['start']:.2f}s")
+                        logger.info(f"   Difference:       {timestamp_diff:+.2f}s")
+                        
+                        if abs(timestamp_diff) > 0.3:
+                            logger.warning(
+                                f"⚠️  Large timestamp difference detected ({timestamp_diff:+.2f}s). "
+                                f"Consider using Silero VAD in runner_0.py for better accuracy."
+                            )
+                        else:
+                            logger.info("✅ Timestamps aligned well between Silero and ASR")
+                            
+            except ImportError:
+                logger.debug("Silero VAD not available for verification, skipping")
+            except Exception as e:
+                logger.warning(f"Silero VAD verification failed: {e}")
+            
+            # ============================================================
+            # Alignment (Uses ASR Segments)
+            # ============================================================
             
             align_compute_start = time.perf_counter()
             result = whisperx.align(

@@ -77,14 +77,69 @@ if __name__ == "__main__":
             audio_load_start = time.perf_counter()
             audio = whisperx.load_audio(req.audio_url)
             logger.info("Loaded audio in %.2fs.", time.perf_counter() - audio_load_start)
+            
+            # ============================================================
+            # SILERO V5 VAD - ML-Based Professional Speech Detection
+            # ============================================================
+            # Replaces outdated Pyannote VAD with modern neural network that
+            # accurately distinguishes speech phonemes from breaths, transients,
+            # and background noise. Key parameter: min_speech_duration_ms=250
+            # filters out short sounds like breathing (typically 50-150ms).
+            # ============================================================
+            
+            vad_segments = None
+            try:
+                from .vad_utils import detect_speech_segments
+                
+                logger.info("🎯 Running Silero V5 VAD for precise speech detection...")
+                vad_start = time.perf_counter()
+                
+                vad_segments = detect_speech_segments(
+                    audio,
+                    sampling_rate=16000,
+                    threshold=0.5,                 # Balanced sensitivity
+                    min_speech_duration_ms=250,    # KEY: Filters breaths/transients
+                    min_silence_duration_ms=100,   # Merge close segments
+                    speech_pad_ms=30               # Minimal padding (vs Pyannote's ~400ms)
+                )
+                
+                vad_duration = time.perf_counter() - vad_start
+                
+                if vad_segments:
+                    logger.info(f"✅ Silero VAD complete in {vad_duration:.2f}s")
+                    logger.info(f"   Will use Silero timestamps for transcription")
+                else:
+                    logger.warning("⚠️  Silero VAD returned no segments, using Pyannote fallback")
+                    
+            except ImportError:
+                logger.warning("⚠️  Silero VAD not available (silero-vad not installed)")
+                logger.info("   Falling back to WhisperX built-in VAD (Pyannote)")
+                vad_segments = None
+            except Exception as e:
+                logger.error(f"⚠️  Silero VAD failed: {e}")
+                logger.info("   Falling back to WhisperX built-in VAD (Pyannote)")
+                vad_segments = None
 
+            # ============================================================
+            # Transcription with VAD Segments
+            # ============================================================
+            
             transcribe_start = time.perf_counter()
             if req.language_hint:
-                logger.info("Transcribing with language hint=%s.", req.language_hint)
-                result_0 = model.transcribe(audio, batch_size=batch_size, language=req.language_hint)
+                logger.info(f"Transcribing with language hint={req.language_hint}, VAD={'Silero' if vad_segments else 'Pyannote'}")
+                result_0 = model.transcribe(
+                    audio,
+                    batch_size=batch_size,
+                    language=req.language_hint,
+                    vad_segments=vad_segments  # Use Silero if available, else WhisperX default
+                )
             else:
-                logger.info("Transcribing with automatic language detection.")
-                result_0 = model.transcribe(audio, batch_size=batch_size)
+                logger.info(f"Transcribing with automatic language detection, VAD={'Silero' if vad_segments else 'Pyannote'}")
+                result_0 = model.transcribe(
+                    audio,
+                    batch_size=batch_size,
+                    vad_segments=vad_segments  # Use Silero if available, else WhisperX default
+                )
             logger.info(
                 "Transcription finished in %.2fs (segments=%d).",
                 time.perf_counter() - transcribe_start,
