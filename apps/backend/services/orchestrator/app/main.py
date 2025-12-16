@@ -2801,9 +2801,9 @@ async def dub(
 
         final_result: Dict[str, Any] = {
             "workspace_id": workspace.workspace_id,
-            # FIX: Return download URL for bulk mode compatibility
-            # Extract filename from path and construct download URL
-            "final_video_path": f"/api/download/{workspace.workspace_id}/{Path(final_video_path).name}" if final_video_path else "",
+            # FIX: Use standard bulk filename pattern for download URL
+            # Files are always saved as dubbed_video_{lang}.mp4 in bulk mode
+            "final_video_path": f"/api/download/{workspace.workspace_id}/dubbed_video_{default_language}.mp4" if final_video_path and default_language else "",
             "final_audio_path": default_audio_path,
             "speech_track": default_speech_track,
             "source_media": original_source,
