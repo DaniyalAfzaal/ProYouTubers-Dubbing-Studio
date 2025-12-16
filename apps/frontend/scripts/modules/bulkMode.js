@@ -448,6 +448,7 @@ export const bulkMode = {
             if ((video.status === 'complete' || video.status === 'completed') &&
                 !this.savedDownloads.has(video.name)) {
                 this.saveToDownloads(video);
+                this.savedDownloads.add(video.name);  // FIX Bug #3: Mark as saved
             }
 
             // Track failed jobs in downloads
@@ -538,10 +539,11 @@ export const bulkMode = {
         cardHTML += '<div class="video-card-footer">';
 
         // Download button for completed videos
-        if ((video.status === 'complete' || video.status === 'completed') && video.result?.video_url) {
-            const videoUrl = video.result.video_url;
+        // FIX Bug #1: Backend returns final_video_path, not video_url
+        const videoPath = video.result?.final_video_path || video.result?.video_url;
+        if ((video.status === 'complete' || video.status === 'completed') && videoPath) {
             cardHTML += `
-                <a href="${this.escapeHtml(videoUrl)}" 
+                <a href="${this.escapeHtml(videoPath)}" 
                    class="btn-download" 
                    download="${this.escapeHtml(video.name)}">
                     <span class="btn-icon">⬇️</span>
@@ -549,11 +551,8 @@ export const bulkMode = {
                 </a>
             `;
 
-            // Save to downloads manager
-            if (!this.savedDownloads.has(video.name)) {
-                this.saveToDownloads(video);
-                this.savedDownloads.add(video.name);
-            }
+            // FIX Bug #2: Removed duplicate saveToDownloads call
+            // Downloads are already saved in updateVideoList (line 450)
         }
 
         cardHTML += '</div>';
@@ -568,6 +567,9 @@ export const bulkMode = {
             return;
         }
 
+        // FIX Bug #1: Get video path once at the start
+        const videoPath = video.result?.final_video_path || video.result?.video_url;
+
         // Check if already being saved (prevent race condition)
         if (this.saveMutex.has(video.name)) {
             console.log(`Save already in progress for: ${video.name}`);
@@ -581,7 +583,7 @@ export const bulkMode = {
             // Check localStorage for actual duplicates
             const existing = downloads.getProcesses();
             const isDuplicate = existing.some(p =>
-                p.videoUrl === video.result.video_url &&
+                p.videoUrl === videoPath &&
                 p.name === video.name
             );
 
@@ -591,8 +593,8 @@ export const bulkMode = {
             }
 
             // Validate video data
-            if (!video.result?.video_url) {
-                console.warn(`No video URL for: ${video.name}`);
+            if (!videoPath) {
+                console.warn(`No video path for: ${video.name}`);
                 return;
             }
 
@@ -612,7 +614,7 @@ export const bulkMode = {
                 timestampISO: new Date().toISOString(),
                 source: video.name || 'Unknown',
                 languages: langs,
-                videoUrl: video.result.video_url,
+                videoUrl: videoPath,  // Use the resolved path
                 logs: `Bulk dubbing completed successfully for languages: ${langs}`,
                 mode: 'bulk',
                 status: 'completed'
