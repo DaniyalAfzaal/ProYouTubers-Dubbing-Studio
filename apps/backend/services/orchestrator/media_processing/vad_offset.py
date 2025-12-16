@@ -200,7 +200,8 @@ def apply_offset_to_segments(segments: list, offset: float) -> None:
     Apply time offset to all segments in-place.
     
     Modifies the .start and .end attributes of each segment by adding
-    the specified offset.
+    the specified offset. Clamps negative timestamps to 0s to prevent
+    video player errors.
     
     Args:
         segments: List of segment objects with .start and .end attributes
@@ -211,6 +212,11 @@ def apply_offset_to_segments(segments: list, offset: float) -> None:
         >>> apply_offset_to_segments(segments, 0.76)
         >>> print(f"New start: {segments[0].start:.2f}s")
         New start: 0.79s
+        
+        >>> segments = [Segment(start=0.5, end=2.0)]
+        >>> apply_offset_to_segments(segments, -0.8)  # Large negative
+        >>> print(f"Clamped: {segments[0].start:.2f}s")
+        Clamped: 0.00s
     """
     if offset == 0:
         return
@@ -218,5 +224,16 @@ def apply_offset_to_segments(segments: list, offset: float) -> None:
     for seg in segments:
         seg.start += offset
         seg.end += offset
+        
+        # Clamp negative timestamps (video players can't handle negative times)
+        if seg.start < 0:
+            logger.warning(
+                f"Offset {offset:+.2f}s pushed segment start to {seg.start:.2f}s, "
+                f"clamping to 0.0s and preserving duration"
+            )
+            duration = seg.end - seg.start
+            seg.start = 0.0
+            seg.end = max(0.0, duration)  # Also clamp end if needed
     
     logger.debug(f"Applied {offset:+.2f}s offset to {len(segments)} segments")
+

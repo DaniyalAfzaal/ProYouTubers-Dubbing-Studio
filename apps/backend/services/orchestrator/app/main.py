@@ -274,7 +274,7 @@ from common_schemas.utils import (
     attach_segment_audio_clips,
     map_by_text_overlap,
 )
-from media_processing.audio_processing import (
+from .media_processing.audio_processing import (
     concatenate_audio,
     get_audio_duration,
     overlay_on_background,
@@ -2369,7 +2369,7 @@ async def dub(
         # Combines automatic silence detection + manual override
         # ============================================================
         
-        from ..media_processing.vad_offset import calculate_vad_offset, apply_offset_to_segments
+        # Import moved to top of file for efficiency
         
         try:
             if raw_asr_result.segments:
@@ -2386,12 +2386,17 @@ async def dub(
                     logger.info(f"   Manual:        {manual_offset:+.2f}s")
                     logger.info(f"   Total:         {total_offset:+.2f}s")
                     
-                    # Apply to raw ASR
+                    # Apply to raw ASR (sentence-level segments)
                     apply_offset_to_segments(raw_asr_result.segments, total_offset)
                     
-                    # Apply to aligned ASR
+                    # Apply to aligned ASR (both sentence and word-level segments)
                     if aligned_asr_result:
                         apply_offset_to_segments(aligned_asr_result.segments, total_offset)
+                        
+                        # CRITICAL: Also update word-level segments for word-by-word timing
+                        if hasattr(aligned_asr_result, 'WordSegments') and aligned_asr_result.WordSegments:
+                            apply_offset_to_segments(aligned_asr_result.WordSegments, total_offset)
+                            logger.debug(f"Applied offset to {len(aligned_asr_result.WordSegments)} word-level segments")
                     
                     # Log corrected timestamps
                     logger.info("📊 Corrected ASR Timestamps:")
