@@ -274,12 +274,14 @@ from common_schemas.utils import (
     attach_segment_audio_clips,
     map_by_text_overlap,
 )
-from .media_processing.audio_processing import (
+from media_processing.audio_processing import (
     concatenate_audio,
     get_audio_duration,
     overlay_on_background,
-    trim_audio_with_vad,
+    finalize_media,
 )
+from media_processing.strict_timing import concatenate_audio_strict_timing
+from media_processing.vad_offset import calculate_vad_offset, apply_offset_to_segments
 from media_processing.audio_validation import validate_audio_quality, validate_segment_audio
 from media_processing.final_pass import final
 from media_processing.subtitles_handling import STYLE_PRESETS, build_subtitles_from_asr_result
@@ -2369,7 +2371,7 @@ async def dub(
         # Combines automatic silence detection + manual override
         # ============================================================
         
-        # Import moved to top of file for efficiency
+        # VAD offset imports are at top of file
         
         try:
             if raw_asr_result.segments:
