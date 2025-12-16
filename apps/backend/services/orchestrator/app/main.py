@@ -278,7 +278,6 @@ from media_processing.audio_processing import (
     concatenate_audio,
     get_audio_duration,
     overlay_on_background,
-    finalize_media,
 )
 from media_processing.strict_timing import concatenate_audio_strict_timing
 from media_processing.vad_offset import calculate_vad_offset, apply_offset_to_segments
