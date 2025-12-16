@@ -349,8 +349,10 @@ export const bulkMode = {
             this.pollInterval = null;
         }
 
-        // FIX: Clear cache for new batch to prevent memory leak
+        // FIX: Clear cache and tracking for new batch to prevent memory leaks
         this.videoItemsCache.clear();
+        this.savedDownloads.clear();  // FIX Bug #6: Clear savedDownloads
+        this.saveMutex.clear();        // FIX Bug #7: Clear saveMutex
 
         // Reset error count BEFORE starting interval
         this.pollErrorCount = 0;
@@ -373,21 +375,33 @@ export const bulkMode = {
                 this.updateProgress(data);
 
                 // Stop when complete
-                if (data.completed + data.failed >= data.total) {
-                    clearInterval(this.pollInterval);
-                    this.pollInterval = null;
+                // FIX Bug #4: Add null check for data.total
+                if (data.total > 0 && (data.completed + data.failed) >= data.total) {
+                    this.stopPolling();  // Use helper function
+                    toast.success(`Batch complete! ${data.completed} succeeded, ${data.failed} failed`);
                 }
             } catch (error) {
                 console.error('Polling error:', error);
                 // FIX: Stop polling after 5 consecutive failures
                 this.pollErrorCount = (this.pollErrorCount || 0) + 1;
-                if (this.pollErrorCount >= 5) {
-                    clearInterval(this.pollInterval);
-                    this.pollInterval = null;
-                    console.error('Stopped polling after 5 failures');
+                if (this.pollErrorCount >= this.maxPollErrors) {
+                    this.stopPolling();  // FIX Bug #5: Use helper to clear currentBatchId
+                    this.videoItemsCache.clear();  // FIX Bug #8: Clear stale cache
+                    toast.error('Lost connection to server. Please refresh and try again.');
+                    console.error('Stopped polling after max failures');
                 }
             }
-        }, 2000); // Poll every 2 seconds
+        }, this.pollDelay);  // Use configurable delay
+    },
+
+    // FIX Bug #4 & #5: Helper function to properly stop polling
+    stopPolling() {
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = null;
+        }
+        this.currentBatchId = null;
+        this.pollErrorCount = 0;
     },
 
     updateProgress(data) {
