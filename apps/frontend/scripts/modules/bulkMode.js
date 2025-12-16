@@ -560,10 +560,12 @@ export const bulkMode = {
         // FIX Bug #1: Backend returns final_video_path, not video_url
         const videoPath = video.result?.final_video_path || video.result?.video_url;
         if ((video.status === 'complete' || video.status === 'completed') && videoPath) {
+            // FIX: Extract filename from download URL instead of using original name
+            const downloadFilename = videoPath.split('/').pop() || 'dubbed_video.mp4';
             cardHTML += `
                 <a href="${this.escapeHtml(videoPath)}" 
                    class="btn-download" 
-                   download="${this.escapeHtml(video.name)}">
+                   download="${this.escapeHtml(downloadFilename)}">
                     <span class="btn-icon">⬇️</span>
                     Download
                 </a>

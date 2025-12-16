@@ -308,13 +308,22 @@ export const downloads = {
             </div>
         `;
 
-        // FIX: Add event listeners for download buttons (XSS safe)
+        // FIX: Create proper download links instead of opening in new tab
         details.querySelectorAll('.download-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const url = btn.dataset.url;
                 // FIX: More robust URL validation
                 if (url && url.trim() && url !== '#' && url !== '') {
-                    window.open(url, '_blank');
+                    // FIX: Extract filename from URL for proper download
+                    const filename = url.split('/').pop() || 'download.mp4';
+                    // Create temporary anchor to trigger download
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
                 }
             });
         });
