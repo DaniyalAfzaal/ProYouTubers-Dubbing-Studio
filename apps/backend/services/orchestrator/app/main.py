@@ -2374,8 +2374,12 @@ async def dub(
         
         try:
             if raw_asr_result.segments:
+                # CRITICAL: vocals_path can be None if audio_sep=False or target_work="sub"
+                # Use raw_audio_path as fallback to prevent crash
+                vad_audio_path = vocals_path if vocals_path else raw_audio_path
+                
                 auto_offset, manual_offset, total_offset = calculate_vad_offset(
-                    audio_path=vocals_path,
+                    audio_path=vad_audio_path,
                     vad_first_segment_start=raw_asr_result.segments[0].start,
                     config=general_cfg
                 )
