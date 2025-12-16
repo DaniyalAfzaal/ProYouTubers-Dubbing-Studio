@@ -2352,7 +2352,16 @@ async def dub(
         # Normalize language code for translation APIs
         source_lang = normalize_language_code(source_lang)
         
+        # DIAGNOSTIC: Log ASR timestamp quality for verification
+        logger.info("📊 ASR Timestamp Quality Check:")
+        for i, seg in enumerate(raw_asr_result.segments[:5]):  # First 5 segments
+            text_preview = seg.text[:50] if hasattr(seg, 'text') else ""
+            logger.info(f"   Segment {i}: [{seg.start:.2f}-{seg.end:.2f}s] dur={(seg.end - seg.start):.2f}s")
+            logger.info(f"      Text: '{text_preview}...'")
+        if len(raw_asr_result.segments) > 5:
+            logger.info(f"   ... and {len(raw_asr_result.segments) - 5} more segments")
         
+
 
         if aligned_asr_result is None:
             raise HTTPException(500, "ASR alignment result missing after transcription stage.")
