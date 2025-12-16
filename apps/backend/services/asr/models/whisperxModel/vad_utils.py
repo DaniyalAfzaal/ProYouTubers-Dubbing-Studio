@@ -135,10 +135,12 @@ def detect_speech_segments(
         from silero_vad import get_speech_timestamps
         
         # Convert numpy array to PyTorch tensor
+        # CRITICAL: Force CPU device because Silero VAD model runs on CPU
+        # This prevents device mismatch errors on GPU-heavy systems
         if isinstance(audio, np.ndarray):
-            audio_tensor = torch.from_numpy(audio.astype(np.float32))
+            audio_tensor = torch.from_numpy(audio.astype(np.float32)).cpu()
         elif isinstance(audio, torch.Tensor):
-            audio_tensor = audio.float()
+            audio_tensor = audio.float().cpu()
         else:
             logger.error(f"Unexpected audio type: {type(audio)}")
             return None
