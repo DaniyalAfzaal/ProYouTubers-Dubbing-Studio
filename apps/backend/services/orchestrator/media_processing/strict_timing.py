@@ -129,10 +129,9 @@ def rubberband_to_duration(in_wav, target_ms, out_wav):
             sr,
             rate,
             rbargs={
-                "--formant": "",    # Preserve formant (voice character)
-                "--pitch-hq": "",   # High quality pitch preservation
-                "--precise": "",    # Better temporal accuracy (critical for sync)
-                "--tempo": ""       # Focus on tempo preservation
+                "--formant": "",    # Preserve formant (voice character) - verified flag
+                "--pitch-hq": ""    # High quality pitch preservation - verified flag
+                # Removed --precise and --tempo for compatibility
             }
         )
     except Exception as e:
