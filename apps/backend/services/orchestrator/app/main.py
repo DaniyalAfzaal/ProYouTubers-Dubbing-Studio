@@ -3155,8 +3155,22 @@ async def bulk_run(
                 videos.append({'name': file.filename, 'type': 'file', 'path': str(file_path)})
     
     if urls:
-        for url in [u.strip() for u in urls.split('\n') if u.strip() and u.startswith(('http://', 'https://'))]:
-            videos.append({'name': url.split('/')[-1] or url[:50], 'type': 'url', 'url': url})
+        # FIX Bug #15: Basic URL validation
+        for url in [u.strip() for u in urls.split('\n') if u.strip()]:
+            # Skip if not a valid URL
+            if not (url.startswith('http://') or url.startswith('https://')):
+                logger.warning(f"Skipping invalid URL (missing http/https): {url[:50]}")
+                continue
+            
+            # Skip if URL is too long (likely malformed)
+            if len(url) > 2000:
+                logger.warning(f"Skipping URL that exceeds 2000 characters: {url[:100]}...")
+                continue
+            
+            # Extract name from URL (last segment or first 50 chars)
+            url_name = url.split('/')[-1] or url[:50]
+            videos.append({'name': url_name, 'type': 'url', 'url': url})
+    
     
     if not videos or len(videos) > 100:
         raise HTTPException(400, "No valid videos or max 100 exceeded")
