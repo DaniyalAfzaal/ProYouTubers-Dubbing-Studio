@@ -2379,8 +2379,9 @@ async def dub(
                     config=general_cfg
                 )
                 
-                if total_offset > 0:
-                    logger.info(f"🔧 Applying VAD offset correction:")
+                if total_offset != 0:  # Apply both positive and negative offsets
+                    direction = "later" if total_offset > 0 else "earlier"
+                    logger.info(f"🔧 Applying VAD offset correction ({total_offset:+.2f}s {direction}):")
                     logger.info(f"   Auto-detected: {auto_offset:+.2f}s")
                     logger.info(f"   Manual:        {manual_offset:+.2f}s")
                     logger.info(f"   Total:         {total_offset:+.2f}s")
