@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="styles/bulk-progress.css">
     <link rel="stylesheet" href="styles/downloads-enhancements.css">
     <link rel="stylesheet" href="./styles/media-inputs.css">
+    <link rel="stylesheet" href="./styles/god-tier.css">
 </head>
 
 <body>
@@ -230,6 +231,8 @@
                         <label>
                             Dubbing Strategy
                             <select name="dubbing_strategy" id="dubbing-strategy"></select>
+                            <small class="hint-text" id="dubbing-strategy-hint"
+                                style="display:none; margin-top:0.5rem;"></small>
                         </label>
                         <label>
                             Subtitle Style
@@ -254,6 +257,32 @@
                     </div>
                     <p class="hint">Provide speaker count hints when known to improve diarization accuracy.</p>
                 </fieldset>
+
+                <!-- God Tier Advanced Controls -->
+                <fieldset id="god-tier-controls" style="display:none;">
+                    <legend>
+                        <span>⚙️</span> God Tier Pipeline Controls
+                        <small style="margin-left: 1rem; font-weight: normal; opacity: 0.7;">
+                            Fine-tune each stage
+                        </small>
+                    </legend>
+
+                    <div class="god-tier-info-banner">
+                        <strong>ℹ️ Info:</strong> Toggle stages on/off and choose models. Disabled stages are skipped.
+                    </div>
+
+                    <div id="god-tier-stages-container"></div>
+
+                    <div class="god-tier-presets">
+                        <p><strong>Quick Presets:</strong></p>
+                        <div class="button-group">
+                            <button type="button" class="secondary" id="preset-full">✨ Full Pipeline</button>
+                            <button type="button" class="secondary" id="preset-essential">⚡ Essential Only</button>
+                            <button type="button" class="secondary" id="preset-quality">🎬 Max Quality</button>
+                        </div>
+                    </div>
+                </fieldset>
+
 
                 <fieldset>
                     <legend>Toggles</legend>

@@ -71,6 +71,31 @@ const handlers = {
       dubbingStrategy.appendChild(new Option(strategy, strategy));
     });
 
+    // Add God Tier Pipeline Options (hardcoded since backend supports them)
+    const godTierDraft = new Option("🏎️ God Tier - Draft (Speed)", "god_tier_draft");
+    const godTierHollywood = new Option("🎬 God Tier - Hollywood (Quality)", "god_tier_hollywood");
+    dubbingStrategy.appendChild(godTierDraft);
+    dubbingStrategy.appendChild(godTierHollywood);
+
+    // Add hint text when God Tier modes are selected
+    const dubbingHint = document.getElementById("dubbing-strategy-hint");
+    if (dubbingStrategy && dubbingHint) {
+      dubbingStrategy.addEventListener("change", () => {
+        const val = dubbingStrategy.value;
+        if (val === "god_tier_draft") {
+          dubbingHint.textContent = "⚡ Speed Mode: Uses Kokoro (Ultra-fast TTS) for instant preview. Check timing in ~30 seconds.";
+          dubbingHint.style.display = "block";
+          dubbingHint.style.color = "#3b82f6"; // Blue
+        } else if (val === "god_tier_hollywood") {
+          dubbingHint.textContent = "🎬 Hollywood Mode: Full 9-stage pipeline (Roformer→GLM→F5→Applio→BigVGAN). Maximum fidelity, slower render.";
+          dubbingHint.style.display = "block";
+          dubbingHint.style.color = "#8b5cf6"; // Purple
+        } else {
+          dubbingHint.style.display = "none";
+        }
+      });
+    }
+
     opts.subtitle_styles.forEach(style => {
       ["Desktop", "Mobile"].forEach(mode => {
         const value = mode === "Mobile" ? `${style}_mobile` : style;

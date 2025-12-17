@@ -9,6 +9,7 @@ import { transcriptionReview, alignmentReview, ttsReview } from "./modules/revie
 import { theme } from "./modules/theme.js";
 import { bulkMode } from "./modules/bulkMode.js";
 import { downloads } from "./modules/downloads.js";
+import { godTierControls } from "./modules/godTierControls.js";
 import "./modules/errorBoundary.js";
 
 const initInvolveMode = () => {
@@ -175,6 +176,7 @@ const initApp = () => {
   theme.init();
   bulkMode.init();
   downloads.init();  // Initialize downloads manager
+  godTierControls.init();  // Initialize God Tier controls
   initInvolveMode();
   initReviewButtons();
   initInitialUI();

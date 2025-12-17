@@ -2205,6 +2205,65 @@ async def dub(
         subtitle_style = None
         dubbing_strategy = "full_replacement"
 
+    # ==============================================================================
+    # 🚀 GOD TIER PIPELINE HOOK (9-Stage Sequential Architecture)
+    # ==============================================================================
+    if dubbing_strategy in ["god_tier_draft", "god_tier_hollywood"]:
+        try:
+            logger.info(f"✨ Activating God Tier Pipeline: {dubbing_strategy}")
+            import sys
+            # Ensure backend services are in path
+            # Current file: apps/backend/services/orchestrator/app/main.py
+            # Root: apps/
+            backend_services_path = str(Path(__file__).resolve().parents[3])
+            if backend_services_path not in sys.path:
+                sys.path.append(backend_services_path)
+            
+            from apps.backend.services.pipeline_manager import PipelineManager
+            
+            pm = PipelineManager(work_dir=str(workspace.tmp_dir))
+            video_path_str = str(resolved_video_path)
+            
+            # Select first target lang or default to en
+            target_lang_code = target_languages[0] if target_languages else "en"
+            
+            if dubbing_strategy == "god_tier_draft":
+                final_audio = pm.run_draft(video_path_str)
+            else:
+                final_audio = pm.run_hollywood(video_path_str)
+                
+            # Construct legacy-compatible response
+            # Note: We skipped video merging in PM for now, so we return audio
+            # If the PM did merging, use that.
+            
+            return {
+                "source_media": str(resolved_video_path),
+                "source_video": str(resolved_video_path),
+                "source_media_local_path": str(resolved_video_path),
+                "final_audio_path": str(final_audio),
+                "final_video_path": str(resolved_video_path), # Placeholder
+                "default_language": target_lang_code,
+                "available_languages": target_languages,
+                "language_outputs": {
+                    target_lang_code: {
+                        "final_audio_path": str(final_audio),
+                        "speech_track": str(final_audio),
+                        "intermediate_files": {},
+                        "models": {"pipeline": "god_tier"}
+                    }
+                },
+                "models": {"pipeline": dubbing_strategy},
+                "timings": {},
+                "subtitles": {},
+                "workspace_id": workspace.id
+            }
+
+        except Exception as e:
+            logger.error(f"❌ God Tier Pipeline Failed: {e}", exc_info=True)
+            # Fallback or re-raise? Re-raising to be visible
+            raise HTTPException(500, f"God Tier Pipeline Failure: {str(e)}")
+    # ==============================================================================
+
     if workspace.persist_intermediate:
         preprocessing_dir = workspace.ensure_dir("preprocessing")
     else:

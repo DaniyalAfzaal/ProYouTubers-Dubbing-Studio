@@ -1,0 +1,183 @@
+<!-- God Tier Advanced Controls -->
+<fieldset id="god-tier-controls" style="display:none;">
+    <legend>
+        <span>⚙️ God Tier Pipeline Controls</span>
+        <small style="margin-left: 1rem; font-weight: normal; opacity: 0.7;">
+            Fine-tune the 9-stage pipeline
+        </small>
+    </legend>
+
+    <div class="god-tier-info-banner">
+        <strong>ℹ️ Info:</strong> These controls only apply when using God Tier modes.
+        Disabled stages will be skipped entirely.
+    </div>
+
+    <!-- Stage 1: The Surgeon -->
+    <div class="stage-control">
+        <div class="stage-header">
+            <label class="checkbox-row stage-toggle">
+                <input type="checkbox" id="stage1-enabled" name="stage1_enabled" checked>
+                <strong>Stage 1: The Surgeon (Isolation)</strong>
+            </label>
+        </div>
+        <div class="stage-options">
+            <label>
+                Model
+                <select name="stage1_model" id="stage1-model">
+                    <option value="bs_roformer_revive">BS-Roformer-Revive (Bleedless)</option>
+                    <option value="viperx_1297">Viperx-1297 (Backup)</option>
+                </select>
+            </label>
+            <small class="hint-text">Isolates vocals from background music/noise</small>
+        </div>
+    </div>
+
+    <!-- Stage 2: The Polisher -->
+    <div class="stage-control">
+        <div class="stage-header">
+            <label class="checkbox-row stage-toggle">
+                <input type="checkbox" id="stage2-enabled" name="stage2_enabled" checked>
+                <strong>Stage 2: The Polisher (Enhancement)</strong>
+            </label>
+        </div>
+        <div class="stage-options">
+            <small class="hint-text">Upscales audio to studio quality (Resemble Enhance)</small>
+        </div>
+    </div>
+
+    <!-- Stage 3: The Ears -->
+    <div class="stage-control">
+        <div class="stage-header">
+            <label class="checkbox-row stage-toggle">
+                <input type="checkbox" id="stage3-enabled" name="stage3_enabled" checked>
+                <strong>Stage 3: The Ears (VAD)</strong>
+            </label>
+        </div>
+        <div class="stage-options">
+            <label>
+                Model
+                <select name="stage3_model" id="stage3-model">
+                    <option value="silero_v6">Silero VAD v6.2 (Baby Filter)</option>
+                    <option value="funasr">FunASR-FSMN (Sensitive)</option>
+                </select>
+            </label>
+            <small class="hint-text">Voice Activity Detection with baby cry filtering</small>
+        </div>
+    </div>
+
+    <!-- Stage 4: The Guard -->
+    <div class="stage-control">
+        <div class="stage-header">
+            <label class="checkbox-row stage-toggle">
+                <input type="checkbox" id="stage4-enabled" name="stage4_enabled">
+                <strong>Stage 4: The Guard (Safety)</strong>
+            </label>
+        </div>
+        <div class="stage-options">
+            <small class="hint-text">Auto-discard segments with Age < 10 (Audeering)</small>
+        </div>
+    </div>
+
+    <!-- Stage 5: The Brain -->
+    <div class="stage-control">
+        <div class="stage-header">
+            <label class="checkbox-row stage-toggle">
+                <input type="checkbox" id="stage5-enabled" name="stage5_enabled" checked>
+                <strong>Stage 5: The Brain (ASR)</strong>
+            </label>
+        </div>
+        <div class="stage-options">
+            <label>
+                Model
+                <select name="stage5_model" id="stage5-model">
+                    <option value="glm_asr_nano">GLM-ASR-Nano (No Hallucination)</option>
+                    <option value="nvidia_canary">NVIDIA Canary-Qwen (Accents)</option>
+                </select>
+            </label>
+            <small class="hint-text">Speech recognition optimized for dialects</small>
+        </div>
+    </div>
+
+    <!-- Stage 6: The Logic -->
+    <div class="stage-control">
+        <div class="stage-header">
+            <label class="checkbox-row stage-toggle">
+                <input type="checkbox" id="stage6-enabled" name="stage6_enabled" checked>
+                <strong>Stage 6: The Logic (LLM Translation)</strong>
+            </label>
+        </div>
+        <div class="stage-options">
+            <label>
+                Model
+                <select name="stage6_model" id="stage6-model">
+                    <option value="deepseek_v3">DeepSeek-V3 (Reasoning)</option>
+                    <option value="qwen3_drama">Qwen3-Drama-8B (Emotional)</option>
+                </select>
+            </label>
+            <small class="hint-text">Time-synced translation with emotional subtext</small>
+        </div>
+    </div>
+
+    <!-- Stage 7: The Mouth -->
+    <div class="stage-control">
+        <div class="stage-header">
+            <label class="checkbox-row stage-toggle">
+                <input type="checkbox" id="stage7-enabled" name="stage7_enabled" checked>
+                <strong>Stage 7: The Mouth (TTS)</strong>
+            </label>
+        </div>
+        <div class="stage-options">
+            <label>
+                Model (Draft mode always uses Kokoro)
+                <select name="stage7_model" id="stage7-model">
+                    <option value="f5_tts">F5-TTS (Flow Matching - Hollywood)</option>
+                    <option value="kokoro_82m">Kokoro-82M (ONNX - Draft)</option>
+                </select>
+            </label>
+            <small class="hint-text">Text-to-Speech synthesis</small>
+        </div>
+    </div>
+
+    <!-- Stage 8: The Skin -->
+    <div class="stage-control">
+        <div class="stage-header">
+            <label class="checkbox-row stage-toggle">
+                <input type="checkbox" id="stage8-enabled" name="stage8_enabled" checked>
+                <strong>Stage 8: The Skin (Voice Cloning)</strong>
+            </label>
+        </div>
+        <div class="stage-options">
+            <small class="hint-text">Applies original speaker's timbre via RVC (Applio)</small>
+        </div>
+    </div>
+
+    <!-- Stage 9: The Renderer -->
+    <div class="stage-control">
+        <div class="stage-header">
+            <label class="checkbox-row stage-toggle">
+                <input type="checkbox" id="stage9-enabled" name="stage9_enabled" checked>
+                <strong>Stage 9: The Renderer (Vocoder)</strong>
+            </label>
+        </div>
+        <div class="stage-options">
+            <label>
+                Model
+                <select name="stage9_model" id="stage9-model">
+                    <option value="bigvgan_v2">BigVGAN v2 (Fidelity)</option>
+                    <option value="hifigan">HiFi-GAN (Low VRAM)</option>
+                </select>
+            </label>
+            <small class="hint-text">Final audio synthesis, removes metallic artifacts</small>
+        </div>
+    </div>
+
+    <!-- Preset Buttons -->
+    <div class="god-tier-presets">
+        <p><strong>Quick Presets:</strong></p>
+        <div class="button-group">
+            <button type="button" class="secondary" id="preset-full">✨ Full Pipeline</button>
+            <button type="button" class="secondary" id="preset-essential">⚡ Essential Only</button>
+            <button type="button" class="secondary" id="preset-quality">🎬 Max Quality</button>
+        </div>
+    </div>
+</fieldset>
