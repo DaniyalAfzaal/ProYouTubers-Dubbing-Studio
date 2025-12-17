@@ -2214,10 +2214,22 @@ async def dub(
         "separation": sep_model,
     }
 
+    # CRITICAL FIX: Don't override God Tier strategies
+    # Old code was resetting god_tier_hollywood to "default" if it wasn't in DUBBING_STRATEGIES list
+    # This killed God Tier routing on older deployments
     if translation_strategy not in TRANSLATION_STRATEGIES:
         translation_strategy = TRANSLATION_STRATEGIES[0]
-    if dubbing_strategy not in DUBBING_STRATEGIES:
-        dubbing_strategy = DUBBING_STRATEGIES[0]
+    
+    # DEBUG: Log strategy before any modifications
+    logger.info(f"🔍 DEBUG: Received dubbing_strategy = '{dubbing_strategy}'")
+    
+    # Only override if not God Tier AND not in allowed list
+    if not dubbing_strategy.startswith('god_tier'):
+        if dubbing_strategy not in DUBBING_STRATEGIES:
+            logger.warning(f"⚠️ Unknown dubbing strategy '{dubbing_strategy}', defaulting to {DUBBING_STRATEGIES[0]}")
+            dubbing_strategy = DUBBING_STRATEGIES[0]
+    else:
+        logger.info(f"✨ God Tier strategy detected: {dubbing_strategy}")
     
     # CRITICAL FIX: Initialize strict_segment_timing (was undefined, causing fallback to legacy mode)
     # This enables ElevenLabs-style segment-by-segment timing instead of global stretching
@@ -2245,6 +2257,7 @@ async def dub(
     # ==============================================================================
     # 🚀 GOD TIER PIPELINE HOOK (9-Stage Sequential Architecture)
     # ==============================================================================
+    logger.info(f"🔍 DEBUG: About to check God Tier. dubbing_strategy = '{dubbing_strategy}'")
     if dubbing_strategy in ["god_tier_draft", "god_tier_hollywood"]:
         try:
             logger.info(f"✨ Activating God Tier Pipeline: {dubbing_strategy}")
