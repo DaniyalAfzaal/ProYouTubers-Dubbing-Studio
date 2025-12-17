@@ -9,31 +9,31 @@ export const godTierControls = {
         },
 
         {
-            id: 2, name: 'The Polisher', desc: 'Enhancement', models: null,
+            id: '1.5', name: 'The Polisher', desc: 'Enhancement', models: null,
             hint: 'Upscales audio to studio quality (Resemble Enhance)', defaultEnabled: true
         },
 
         {
-            id: 3, name: 'The Ears', desc: 'VAD', models: [
+            id: 2, name: 'The Ears', desc: 'VAD', models: [
                 { value: 'silero_v6', label: 'Silero VAD v6.2 (Baby Filter)' },
                 { value: 'funasr', label: 'FunASR-FSMN (Sensitive)' }
             ], hint: 'Voice Activity Detection with baby cry filtering', defaultEnabled: true
         },
 
         {
-            id: 4, name: 'The Guard', desc: 'Safety', models: null,
+            id: 3, name: 'The Guard', desc: 'Safety', models: null,
             hint: 'Auto-discard segments with Age < 10 (Audeering)', defaultEnabled: false
         },
 
         {
-            id: 5, name: 'The Brain', desc: 'ASR', models: [
+            id: 4, name: 'The Brain', desc: 'ASR', models: [
                 { value: 'glm_asr_nano', label: 'GLM-ASR-Nano (No Hallucination)' },
                 { value: 'nvidia_canary', label: 'NVIDIA Canary-Qwen (Accents)' }
             ], hint: 'Speech recognition optimized for dialects', defaultEnabled: true
         },
 
         {
-            id: '5.5', name: 'The Eyes', desc: 'Vision', models: null,
+            id: 5, name: 'The Eyes', desc: 'Vision', models: null,
             hint: 'Analyze video frames to fix gender pronouns (GLM-4.6V-Flash)', defaultEnabled: true
         },
 
@@ -149,9 +149,9 @@ export const godTierControls = {
 
     applyPreset(presetName) {
         const presets = {
-            full: [1, 2, 3, 4, 5, 6, 7, 8, 9], // All stages
-            essential: [1, 3, 5, 6, 7], // Skip polisher, guard, cloning, renderer
-            quality: [1, 2, 3, 5, 6, 7, 8, 9] // Skip guard only
+            full: [1, '1.5', 2, 3, 4, 5, 6, 7, '7.5', 8, 9], // All 11 stages
+            essential: [1, 2, 4, 6, 7], // Core only: Surgeon, VAD, ASR, LLM, TTS
+            quality: [1, '1.5', 2, 4, 5, 6, 7, '7.5', 8, 9] // Skip Safety only
         };
 
         const enabledStages = presets[presetName] || [];
@@ -165,9 +165,9 @@ export const godTierControls = {
 
         // Visual feedback
         const messages = {
-            full: 'All 9 stages enabled',
-            essential: 'Core stages only (5/9)',
-            quality: 'Maximum quality preset (8/9)'
+            full: '🎬 All 11 stages enabled (Maximum Quality)',
+            essential: '⚡ Core 5 stages (Speed Mode)',
+            quality: '✨ 10 stages (Premium Quality, no Safety filter)'
         };
 
         console.log(`✨ Preset applied: ${messages[presetName]}`);

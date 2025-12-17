@@ -202,9 +202,6 @@
                                 <option value="linguee">Linguee</option>
                                 <option value="qcri">QCRI</option>
                             </select>
-                            <p class="hint" style="margin-top: 0.5rem; font-size: 0.85rem;">
-                                Only applies to "deep_translator" model. Google is free, others may require API keys.
-                            </p>
                         </label>
                         <label>
                             TTS Model
@@ -213,12 +210,6 @@
                             </select>
                         </label>
                     </div>
-                    <label>
-                        Audio Separation Model
-                        <select name="sep_model" id="sep-model">
-                            <option value="auto">Auto</option>
-                        </select>
-                    </label>
                 </fieldset>
 
                 <fieldset>
@@ -284,32 +275,7 @@
                 </fieldset>
 
 
-                <fieldset>
-                    <legend>Toggles</legend>
-                    <div class="flex">
-                        <label class="checkbox-row">
-                            <input type="checkbox" id="persist-intermediate" name="persist_intermediate">
-                            Keep intermediate artefacts
-                        </label>
-                        <label class="checkbox-row">
-                            <input type="checkbox" id="audio-sep" name="audio_sep" checked>
-                            Perform source separation
-                        </label>
-                        <label class="checkbox-row">
-                            <input type="checkbox" id="vad-trim" name="perform_vad_trimming" checked>
-                            Trim TTS with VAD
-                        </label>
-                        <label class="toggle-item">
-                            <input type="checkbox" id="toggle-sophisticated-dub-timing" checked>
-                            <span>Sophisticated dub timing</span>
-                        </label>
-
-                        <label class="toggle-item">
-                            <input type="checkbox" id="toggle-strict-segment-timing" checked>
-                            <span>Strict segment timing</span>
-                        </label>
-                    </div>
-                </fieldset>
+                <!-- Legacy toggles removed - God Tier pipeline handles all optimizations automatically -->
 
                 <div class="actions">
                     <div class="button-group">
