@@ -482,6 +482,10 @@ const handlers = {
     }
 
     if (linkValue) {
+      // Normalize linkValue to ensure it starts with http:// or https://
+      if (!linkValue.startsWith("http://") && !linkValue.startsWith("https://")) {
+        linkValue = "https://" + linkValue;
+      }
       formData.set("video_url", linkValue);
       formData.delete("file");
     } else if (!hasFile) {
@@ -509,12 +513,22 @@ const handlers = {
       formData.delete("target_lang");
     }
 
-    // CRITICAL FIX: Serialize God Tier configuration
+    // CRITICAL FIX: Serialize God Tier configuration with validation
     const dubbingStrategy = formData.get('dubbing_strategy');
     if (dubbingStrategy?.startsWith('god_tier')) {
-      const godTierConfig = godTierControls.getConfig();
-      formData.append('god_tier_config', JSON.stringify(godTierConfig));
-      console.log('✨ God Tier config serialized:', godTierConfig);
+      try {
+        if (typeof godTierControls !== 'undefined' && godTierControls.getConfig) {
+          const godTierConfig = godTierControls.getConfig();
+          formData.append('god_tier_config', JSON.stringify(godTierConfig));
+          console.log('✨ God Tier config serialized:', godTierConfig);
+        } else {
+          console.warn('⚠️ God Tier controls not available, using defaults');
+          formData.append('god_tier_config', JSON.stringify({ stages_enabled: {}, stage_models: {} }));
+        }
+      } catch (error) {
+        console.error('❌ Failed to serialize God Tier config:', error);
+        formData.append('god_tier_config', JSON.stringify({ stages_enabled: {}, stage_models: {} }));
+      }
     }
 
     formData.set("involve_mode", state.involveMode ? "true" : "false");
