@@ -9,7 +9,10 @@ TRANSLATION_STRATEGIES:
 DUBBING_STRATEGIES:
   - "default"
   - "translation_over"
-  - "full_replacement" 
+  - "full_replacement"
+  - "god_tier_draft"
+  - "god_tier_hollywood"
+ 
 
 log_level: INFO
 transcript_tolerance: 0.25
