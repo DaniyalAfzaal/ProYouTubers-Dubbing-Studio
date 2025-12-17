@@ -23,9 +23,16 @@ class PipelineManager:
     The Orchestrator of the 10-Stage Perfectionist Pipeline.
     Manages VRAM by sequentially loading/unloading models in 'Hollywood' mode.
     """
-    def __init__(self, work_dir: str = "output/"):
+    def __init__(self, work_dir: str = "output/", config: dict = None):
         self.work_dir = work_dir
         os.makedirs(work_dir, exist_ok=True)
+        
+        # Parse God Tier configuration
+        self.config = config or {}
+        self.stages_enabled = self.config.get('stages_enabled', {})
+        self.stage_models = self.config.get('stage_models', {})
+        
+        logger.info(f"🎛️ Pipeline config: {len(self.stages_enabled)} stage toggles, {len(self.stage_models)} model selections")
         
         # Initialize Runners (Lazy Loading)
         self.roformer = RoformerRunner()
@@ -40,6 +47,10 @@ class PipelineManager:
         self.chatterbox = ChatterboxRunner()  # NEW: Stage 7.5
         self.applio = ApplioRunner()
         self.bigvgan = BigVGANRunner()
+    
+    def is_stage_enabled(self, stage_id: str) -> bool:
+        """Check if a stage is enabled in user configuration."""
+        return self.stages_enabled.get(f'stage{stage_id}', True)  # Default: enabled
 
     def run_draft(self, video_path: str):
         """

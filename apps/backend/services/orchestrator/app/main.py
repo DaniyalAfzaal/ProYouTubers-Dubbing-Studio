@@ -2212,6 +2212,7 @@ async def dub(
         try:
             logger.info(f"✨ Activating God Tier Pipeline: {dubbing_strategy}")
             import sys
+            import json
             # Ensure backend services are in path
             # Current file: apps/backend/services/orchestrator/app/main.py
             # Root: apps/
@@ -2221,7 +2222,20 @@ async def dub(
             
             from apps.backend.services.pipeline_manager import PipelineManager
             
-            pm = PipelineManager(work_dir=str(workspace.tmp_dir))
+            # CRITICAL FIX: Parse God Tier configuration
+            god_tier_config_str = request.form.get('god_tier_config')
+            god_tier_config = {}
+            if god_tier_config_str:
+                try:
+                    god_tier_config = json.loads(god_tier_config_str)
+                    logger.info(f"📋 God Tier config parsed: {god_tier_config}")
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse god_tier_config: {e}")
+            
+            pm = PipelineManager(
+                work_dir=str(workspace.tmp_dir),
+                config=god_tier_config  # Pass configuration
+            )
             video_path_str = str(resolved_video_path)
             
             # Select first target lang or default to en
