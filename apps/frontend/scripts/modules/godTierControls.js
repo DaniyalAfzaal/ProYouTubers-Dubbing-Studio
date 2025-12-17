@@ -33,6 +33,11 @@ export const godTierControls = {
         },
 
         {
+            id: '5.5', name: 'The Eyes', desc: 'Vision', models: null,
+            hint: 'Analyze video frames to fix gender pronouns (GLM-4.6V-Flash)', defaultEnabled: true
+        },
+
+        {
             id: 6, name: 'The Logic', desc: 'LLM Translation', models: [
                 { value: 'deepseek_v3', label: 'DeepSeek-V3 (Reasoning)' },
                 { value: 'qwen3_drama', label: 'Qwen3-Drama-8B (Emotional)' }
@@ -44,6 +49,11 @@ export const godTierControls = {
                 { value: 'f5_tts', label: 'F5-TTS (Flow Matching - Hollywood)' },
                 { value: 'kokoro_82m', label: 'Kokoro-82M (ONNX - Draft)' }
             ], hint: 'Text-to-Speech synthesis', defaultEnabled: true
+        },
+
+        {
+            id: '7.5', name: 'The FX', desc: 'Humanizer', models: null,
+            hint: 'Insert [laugh], [sigh] emotional effects (Chatterbox-Turbo)', defaultEnabled: false
         },
 
         {

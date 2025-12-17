@@ -17,6 +17,10 @@ accelerate>=0.34.0
 funasr>=1.1.0
 modelscope>=1.18.0
 
+# --- VISION (Stage 5: Eyes) ---
+pillow>=10.0.0
+opencv-python>=4.8.0
+
 # --- PHASE 3: MOUTH (GENERATION) ---
 librosa>=0.10.0
 soundfile>=0.12.1
