@@ -517,11 +517,6 @@ const handlers = {
       console.log('✨ God Tier config serialized:', godTierConfig);
     }
 
-    formData.set("audio_sep", document.getElementById("audio-sep").checked ? "true" : "false");
-    formData.set("perform_vad_trimming", document.getElementById("vad-trim").checked ? "true" : "false");
-    formData.set("sophisticated_dub_timing", document.getElementById("toggle-sophisticated-dub-timing").checked ? "true" : "false");
-    formData.set("strict_segment_timing", document.getElementById("toggle-strict-segment-timing").checked ? "true" : "false");
-    formData.set("persist_intermediate", document.getElementById("persist-intermediate").checked ? "true" : "false");
     formData.set("involve_mode", state.involveMode ? "true" : "false");
 
     const normalizeSpeakerField = (field, label) => {
