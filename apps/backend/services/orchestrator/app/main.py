@@ -1596,6 +1596,40 @@ async def download_video(video_id: str, filename: str):
     raise HTTPException(404, f"Video not found: {filename}")
 
 
+@app.get(f"{API_PREFIX}/options")
+async def get_options():
+    """
+    Returns configuration options for frontend dropdowns.
+    Called by frontend during initialization to populate selectors.
+    """
+    return JSONResponse({
+        "dubbing_strategies": DUBBING_STRATEGIES or [],
+        "translation_strategies": TRANSLATION_STRATEGIES or [],
+        "asr_models": [
+            {"filename": "whisperx", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko", "pt", "ru", "ar"]},
+            {"filename": "glm-asr", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]}
+        ],
+        "translation_models": [
+            {"filename": "deep_translator", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko", "pt", "ru", "ar"]},
+            {"filename": "facebook_m2m100", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]}
+        ],
+        "tts_models": [
+            {"filename": "chatterbox", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]},
+            {"filename": "f5-tts", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]},
+            {"filename": "kokoro", "languages": ["en"]}
+        ],
+        "audio_separation_models": [
+            {
+                "architecture": "Roformer",
+                "models": [
+                    {"filename": "melband_roformer_big_beta5e.ckpt", "stems": ["vocals", "instrumental"]}
+                ]
+            }
+        ],
+        "subtitle_styles": ["Default", "Youtube", "Netflix"]
+    })
+
+
 @app.get(f"{API_PREFIX}/outputs/{{video_id}}")
 async def list_outputs(video_id: str):
     """List all output files for a video ID"""
