@@ -242,22 +242,34 @@ class PipelineManager:
             logger.info("⏭️ Stage 6: SKIPPED (user disabled)")
             translated_script = segments
         
-        # Stage 7: The Mouth (F5-TTS)
+        # Stage 7: The Mouth (F5-TTS or Kokoro)
         if self.is_stage_enabled('7'):
-            logger.info("👄 Stage 7: Text-to-Speech synthesis")
+            # Select TTS model based on user preference
+            model_choice = self.stage_models.get('stage7', 'f5_tts')
+            logger.info(f"👄 Stage 7: Text-to-Speech synthesis ({model_choice})")
+            
             try:
                 combined_text = " ".join([s.get('text', '') for s in translated_script])
                 tts_output = os.path.join(self.work_dir, "tts_output.wav")
-                # Extract reference text from first segment for better voice matching
-                ref_text = segments[0].get('text', '')[:100] if segments else ""
-                tts_raw = self.f5.generate(
-                    text=combined_text,
-                    ref_audio=current_audio,
-                    ref_text=ref_text,
-                    output_file=tts_output
-                )
+                
+                if model_choice == 'kokoro':
+                    # Use Kokoro (fast draft mode)
+                    logger.info("Using Kokoro TTS")
+                    tts_raw = self.kokoro.generate(combined_text, output_file=tts_output)
+                    self.kokoro.unload()
+                else:
+                    # Use F5-TTS (default, Hollywood mode)
+                    logger.info("Using F5-TTS")
+                    ref_text = segments[0].get('text', '')[:100] if segments else ""
+                    tts_raw = self.f5.generate(
+                        text=combined_text,
+                        ref_audio=current_audio,
+                        ref_text=ref_text,
+                        output_file=tts_output
+                    )
+                    self.f5.unload()
+                
                 current_audio = tts_raw
-                self.f5.unload()
                 enabled_stages += 1
             except Exception as e:
                 logger.warning(f"Stage 7 failed: {e}, keeping previous audio")
@@ -314,7 +326,40 @@ class PipelineManager:
         if not current_audio or not os.path.exists(current_audio):
             logger.error("Hollywood pipeline failed to produce valid output!")
             logger.error(f"Last known audio path: {current_audio}")
-            # Return input as absolute fallback
             return video_path
         
-        return current_audio
+        # CRITICAL: Merge audio back with video
+        logger.info("🎬 Merging dubbed audio with original video...")
+        final_video = os.path.join(self.work_dir, "final_dubbed_video.mp4")
+        
+        try:
+            merge_cmd = [
+                'ffmpeg', '-y',
+                '-i', video_path,           # Original video
+                '-i', current_audio,        # Dubbed audio
+                '-c:v', 'copy',             # Copy video stream (no re-encode)
+                '-c:a', 'aac',              # Encode audio as AAC
+                '-b:a', '192k',             # Audio bitrate
+                '-map', '0:v:0',            # Map video from first input
+                '-map', '1:a:0',            # Map audio from second input
+                '-shortest',                # Match shortest stream duration
+                final_video
+            ]
+            
+            result = subprocess.run(
+                merge_cmd,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            logger.info(f"✅ Final video created: {final_video}")
+            return final_video
+            
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Video merge failed: {e.stderr}")
+            logger.warning("Returning audio file instead of video")
+            return current_audio
+        except Exception as e:
+            logger.error(f"Unexpected error during merge: {e}")
+            return current_audio
