@@ -2242,26 +2242,26 @@ async def dub(
             target_lang_code = target_languages[0] if target_languages else "en"
             
             if dubbing_strategy == "god_tier_draft":
-                final_audio = pm.run_draft(video_path_str)
+                final_output = pm.run_draft(video_path_str)
             else:
-                final_audio = pm.run_hollywood(video_path_str)
+                final_output = pm.run_hollywood(video_path_str)
                 
-            # Construct legacy-compatible response
-            # Note: We skipped video merging in PM for now, so we return audio
-            # If the PM did merging, use that.
+            # Pipeline returns either video (if merged) or audio (if merge failed)
+            # Check if output is video or audio
+            is_video = final_output.endswith(('.mp4', '.mkv', '.avi', '.mov'))
             
             return {
                 "source_media": str(resolved_video_path),
                 "source_video": str(resolved_video_path),
                 "source_media_local_path": str(resolved_video_path),
-                "final_audio_path": str(final_audio),
-                "final_video_path": str(resolved_video_path), # Placeholder
+                "final_audio_path": str(final_output),
+                "final_video_path": str(final_output) if is_video else str(resolved_video_path),
                 "default_language": target_lang_code,
                 "available_languages": target_languages,
                 "language_outputs": {
                     target_lang_code: {
-                        "final_audio_path": str(final_audio),
-                        "speech_track": str(final_audio),
+                        "final_audio_path": str(final_output),
+                        "speech_track": str(final_output),
                         "intermediate_files": {},
                         "models": {"pipeline": "god_tier"}
                     }
