@@ -8,6 +8,7 @@ import { ui } from './ui.js';
 import { token } from './token.js';
 import { results } from './results.js';
 import { transcriptionReview, alignmentReview, ttsReview } from './reviews.js';
+import { godTierControls } from './godTierControls.js';
 
 // Event Handlers
 const handlers = {
