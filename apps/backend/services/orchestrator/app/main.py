@@ -2200,10 +2200,13 @@ async def dub(
 
     source_has_video = await has_video_stream(resolved_video_path) # better check to avoid issues with audio-only inputs being treated as videos
 
+    # CRITICAL FIX: Don't override God Tier strategy for audio-only inputs
     if not source_has_video:
         target_work = "dub"
         subtitle_style = None
-        dubbing_strategy = "full_replacement"
+        # Only override dubbing_strategy if NOT using God Tier
+        if not dubbing_strategy.startswith('god_tier'):
+            dubbing_strategy = "full_replacement"
 
     # ==============================================================================
     # 🚀 GOD TIER PIPELINE HOOK (9-Stage Sequential Architecture)
