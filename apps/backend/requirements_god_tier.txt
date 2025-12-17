@@ -11,7 +11,7 @@ audio-separator>=0.17.0
 resemble-enhance>=0.0.1
 
 # --- PHASE 2: EARS & BRAIN ---
-silero-vad==5.0
+silero-vad==5.1
 transformers>=4.46.0
 accelerate>=0.34.0
 funasr>=1.1.0

@@ -89,28 +89,23 @@ print("✅ .env configured with API keys")
 
 
 CELL 6:
-sh(r'''
-cd /root/proyoutubers-dubbing
+# Install PyTorch FIRST
+sh('pip install torch==2.4.0+cu121 torchaudio==2.4.0+cu121 --index-url https://download.pytorch.org/whl/cu121', timeout=1800)
 
-# Install PyTorch FIRST (required by everything)
-pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+# Install NumPy (required by everything)
+sh('pip install numpy==1.26.4', timeout=300)
 
-# Install legacy pipeline dependencies (ABSOLUTE PATHS)
-pip install -r apps/backend/services/asr/requirements.txt
-pip install -r apps/backend/services/translation/requirements.txt
-pip install -r apps/backend/services/tts/requirements.txt
-pip install -r apps/backend/services/orchestrator/requirements.txt
+# Install God Tier stack
+sh('pip install -r /root/proyoutubers-dubbing/apps/backend/requirements_god_tier.txt', timeout=1800)
 
-# Install God Tier dependencies (OPTIONAL - can fail)
-pip install -r apps/backend/requirements_god_tier.txt || echo "⚠️  God Tier deps skipped (optional)"
+# Install any root requirements if they exist
+sh('cd /root/proyoutubers-dubbing && pip install -r requirements.txt || echo "No root requirements.txt"', timeout=600)
 
-# Verify PyTorch
-python -c "import torch; print(f'✅ PyTorch: {torch.__version__}')"
-python -c "import torch; print(f'✅ CUDA available: {torch.cuda.is_available()}')"
-python -c "import torch; print(f'✅ GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"None\"}')"
-''', timeout=60*60)
+# Verify
+sh('python -c "import torch; import numpy; print(f\'PyTorch: {torch.__version__}, NumPy: {numpy.__version__}\')"')
+sh('python -c "import torch; print(f\'CUDA: {torch.cuda.is_available()}, GPU: {torch.cuda.get_device_name(0)}\')"')
 
-print("✅ All dependencies installed successfully")
+print("✅ Dependencies installed successfully")
 
 
 CELL 7:
