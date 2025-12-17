@@ -509,6 +509,14 @@ const handlers = {
       formData.delete("target_lang");
     }
 
+    // CRITICAL FIX: Serialize God Tier configuration
+    const dubbingStrategy = formData.get('dubbing_strategy');
+    if (dubbingStrategy?.startsWith('god_tier')) {
+      const godTierConfig = godTierControls.getConfig();
+      formData.append('god_tier_config', JSON.stringify(godTierConfig));
+      console.log('✨ God Tier config serialized:', godTierConfig);
+    }
+
     formData.set("audio_sep", document.getElementById("audio-sep").checked ? "true" : "false");
     formData.set("perform_vad_trimming", document.getElementById("vad-trim").checked ? "true" : "false");
     formData.set("sophisticated_dub_timing", document.getElementById("toggle-sophisticated-dub-timing").checked ? "true" : "false");
