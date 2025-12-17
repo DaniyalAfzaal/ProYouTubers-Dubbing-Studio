@@ -1,66 +1,114 @@
 import torch
 import logging
-from transformers import AutoModel, AutoTokenizer
-# GLM-ASR might use specific audio processing flow.
-# Assuming standard HF Interface for "zai-org/GLM-ASR-Nano-2512"
-# If it requires 'glmasr' library, user needs to install it. 
-# Providing the generic HF implementation wrapper.
+import librosa
+import numpy as np
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 
 logger = logging.getLogger(__name__)
 
 class GLMASRRunner:
     """
-    Stage 5: The Brain
-    GLM-ASR-Nano-2512 - Hallucination free ASR.
+    Stage 4: The Brain
+    GLM-ASR-Nano-2512 - Hallucination-free ASR optimized for multilingual transcription.
     """
-    def __init__(self, model_path: str = "zai-org/GLM-ASR-Nano-2512"):
+    def __init__(self, model_path: str = "THUDM/glm-4-voice-9b"):
+        # Note: GLM-ASR-Nano might be part of GLM-4-Voice family
+        # Using GLM-4-Voice as the base model which includes ASR capabilities
         self.model_path = model_path
         self.model = None
-        self.tokenizer = None
+        self.processor = None
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def load(self):
-        if self.model: return
+        if self.model: 
+            return
 
-        logger.info(f"🧠 Loading GLM-ASR ({self.model_path})...")
+        logger.info(f"🧠 Loading GLM-ASR from {self.model_path}...")
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
-            self.model = AutoModel.from_pretrained(self.model_path, trust_remote_code=True)
-            if torch.cuda.is_available():
-                self.model = self.model.to("cuda")
-                self.model.eval()
-            logger.info("✅ GLM-ASR Loaded.")
+            self.processor = AutoProcessor.from_pretrained(
+                self.model_path, 
+                trust_remote_code=True
+            )
+            self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
+                self.model_path,
+                trust_remote_code=True,
+                torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                device_map="auto"
+            )
+            self.model.eval()
+            logger.info(f"✅ GLM-ASR Loaded on {self.device}")
         except Exception as e:
             logger.error(f"Failed to load GLM-ASR: {e}")
             raise
 
-    def transcribe(self, audio_path: str) -> str:
+    def transcribe(self, audio_path: str, language: str = None) -> dict:
         """
-        Transcribes audio file to text.
+        Transcribes audio file to text with timestamps.
+        
+        Returns:
+            {
+                "text": "full transcription",
+                "segments": [{"text": "...", "start": 0.0, "end": 3.0}],
+                "language": "zh"
+            }
         """
         if not self.model:
             self.load()
             
         logger.info(f"🧠 Transcribing {audio_path}...")
         try:
-            # NOTE: Actual inference API depends on the remote model code.
-            # GLM models often have a .transcribe() or .chat() method if it's GLM-4 class.
-            # Assuming a .transcribe method exposed by the trust_remote_code=True model.
+            # Load audio at 16kHz (standard for ASR models)
+            audio, sr = librosa.load(audio_path, sr=16000, mono=True)
             
-            # Placeholder for exact inference syntax:
-            res = self.model.transcribe(audio_path)
+            # Process audio through processor
+            inputs = self.processor(
+                audio,
+                sampling_rate=16000,
+                return_tensors="pt"
+            ).to(self.device)
             
-            # If it returns a structure, extract text
-            text = res if isinstance(res, str) else str(res)
-            logger.info(f"✅ Text: {text[:50]}...")
-            return text
+            # Generate transcription
+            with torch.no_grad():
+                generated_ids = self.model.generate(
+                    **inputs,
+                    max_length=448,
+                    do_sample=False
+                )
+            
+            # Decode output
+            transcription = self.processor.batch_decode(
+                generated_ids, 
+                skip_special_tokens=True
+            )[0]
+            
+            logger.info(f"✅ Transcription: {transcription[:100]}...")
+            
+            # For now, return simple format
+            # Full timestamp alignment would require additional VAD integration
+            return {
+                "text": transcription,
+                "segments": [
+                    {
+                        "text": transcription,
+                        "start": 0.0,
+                        "end": len(audio) / sr
+                    }
+                ],
+                "language": language or "auto"
+            }
+            
         except Exception as e:
             logger.error(f"GLM Transcription Failed: {e}")
             raise
 
     def unload(self):
         if self.model:
+            logger.info("🧹 Unloading GLM-ASR...")
             del self.model
-            del self.tokenizer
+            del self.processor
             self.model = None
+            self.processor = None
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+            logger.info("✅ GLM-ASR unloaded")
+

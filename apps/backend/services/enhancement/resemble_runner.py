@@ -1,67 +1,87 @@
+"""
+Stage 1.5: The Polisher (Enhancement)
+Model: Resemble Enhance
+Purpose: Upscale audio to studio quality, remove noise/artifacts
+Link: https://github.com/resemble-ai/resemble-enhance
+"""
+
 import logging
+import subprocess
 import os
-import torch
-# Assuming 'resemble_enhance' is installed
-try:
-    from resemble_enhance.enhancer.inference import enhance
-except ImportError:
-    enhance = None
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+
 class ResembleRunner:
     """
-    Stage 2: The Polisher
-    Resemble Enhance - Upscales and restores audio clarity.
+    Stage 1.5: The Polisher
+    Wraps resemble-enhance CLI for audio enhancement.
     """
-    def __init__(self):
-        pass
-
-    def load(self):
-        # Resemble enhance typically loads model purely on functional call or lazy global
-        # We'll just ensure imports worked
-        if enhance is None:
-            raise RuntimeError("Resemble Enhance library not found. Please install 'resemble-enhance'.")
-        logger.info("✨ Resemble Enhance Ready.")
-
-    def polish(self, input_path: str, output_path: str, run_enhancer: bool = True, run_denoiser: bool = True):
-        """
-        Runs enhancement on the input audio.
-        """
-        self.load()
+    
+    def __init__(self, denoise_only: bool = False):
+        self.denoise_only = denoise_only
         
-        logger.info(f"✨ Polishing {os.path.basename(input_path)}...")
+    def polish(self, input_wav: str, output_wav: str = None) -> str:
+        """
+        Enhances audio quality using Resemble Enhance.
+        
+        Args:
+            input_wav: Path to input audio file
+            output_wav: Path to save enhanced audio (optional)
+            
+        Returns:
+            Path to enhanced audio file
+        """
+        if output_wav is None:
+            input_path = Path(input_wav)
+            output_wav = str(input_path.parent / f"{input_path.stem}_polished.wav")
+        
+        logger.info(f"✨ The Polisher: Enhancing {os.path.basename(input_wav)}")
+        
         try:
-            # Resemble enhance usually takes a tensor or path + config.
-            # We'll need to read, process, save.
-            # Using sub-process approach might be safer if the library is script-heavy,
-            # but direct import is faster.
-            # Pseudocode based on their inference API:
+            # Build resemble-enhance command
+            cmd = [
+                "resemble-enhance",
+                input_wav,
+                "-o", output_wav
+            ]
             
-            # import torchaudio
-            # info, audio = torchaudio.load(input_path)
-            # enhanced, new_sr = enhance(audio, info.sample_rate, device='cuda')
-            # torchaudio.save(output_path, enhanced, new_sr)
+            if self.denoise_only:
+                cmd.append("--denoise_only")
             
-            # Since I can't guarantee 'torchaudio' is imported in this snippet context without errors if missing,
-            # I will implement the subprocess call to their CLI which is robust.
+            #Run enhancement
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True
+            )
             
-            cmd = f"resemble-enhance --input_path \"{input_path}\" --output_path \"{output_path}\""
-            if not run_denoiser:
-                # Assuming flags exist, otherwise it does both by default
-                pass
+            logger.info("✅ Audio enhanced successfully")
+            if result.stdout:
+                logger.debug(f"Resemble output: {result.stdout}")
             
-            import subprocess
-            subprocess.run(cmd, shell=True, check=True)
+            return output_wav
             
-            logger.info("✅ Audio Polished.")
-            return output_path
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Resemble Enhance failed: {e.stderr}")
+            logger.warning("Returning original audio (enhancement skipped)")
+            return input_wav
             
-        except Exception as e:
-            logger.error(f"Resemble Polish Failed: {e}")
-            raise
-
+        except FileNotFoundError:
+            logger.error("resemble-enhance CLI not found. Install with: pip install resemble-enhance")
+            logger.warning("Returning original audio (enhancement skipped)")
+            return input_wav
+    
     def unload(self):
-        # If using subprocess, nothing to unload. 
-        # If loaded into VRAM via import, we'd need to clear the specific cache manually.
+        """No GPU model to unload (CLI-based)."""
         pass
+
+
+if __name__ == "__main__":
+    # Quick test
+    logging.basicConfig(level=logging.INFO)
+    runner = ResembleRunner()
+    # result = runner.polish("test.wav")
+    print("✅ Resemble runner initialized")

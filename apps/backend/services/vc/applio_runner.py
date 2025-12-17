@@ -1,59 +1,121 @@
+"""
+Stage 8: The Skin (Voice Cloning)
+Model: Applio (RVC)
+Purpose: Apply original speaker's voice timbre to TTS output
+Link: https://github.com/IAHispano/Applio
+"""
+
 import logging
 import os
-import torch
-import sys
+import subprocess
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
 
 class ApplioRunner:
     """
     Stage 8: The Skin
-    Applio (RVC) - Voice Conversion for timbre matching.
+    Wraps Applio/RVC for voice cloning.
     """
-    def __init__(self, rvc_lib_path: str = "libs/rvc"):
-        # RVC often needs its library in path
-        if rvc_lib_path not in sys.path:
-            sys.path.append(rvc_lib_path)
-            
-        self.pipeline = None
-
-    def load(self):
-        if self.pipeline: return
+    
+    def __init__(self, models_dir: str = "models/rvc"):
+        self.models_dir = Path(models_dir)
+        self.current_model = None
         
-        logger.info("🎭 Loading Applio/RVC Pipeline...")
-        try:
-            # Import internal RVC modules
-            # from vc_infer_pipeline import VC
-            # self.pipeline = VC(...)
-            pass
-        except ImportError:
-            logger.warning("RVC Library not found. Voice Cloning will be skipped.")
-            
+    def load(self, model_path: str = None):
+        """Load RVC model (if using Python bindings)."""
+        logger.info(f"🎨 Preparing RVC voice cloning...")
+        self.current_model = model_path
+        # Note: Applio is primarily CLI-based
+        # If using rvc-python package, would load model here
+    
     def apply_skin(
         self, 
-        audio_path: str, 
-        model_path: str, 
-        index_path: str, 
-        f0_up_key: int = 0,
-        output_path: str = "rvc_out.wav"
+        input_audio: str, 
+        reference_voice: str = None,
+        output_audio: str = None,
+        pitch_shift: int = 0,
+        index_rate: float = 0.5
     ) -> str:
         """
-        Applies the RVC model to the audio.
-        """
-        # Placeholder for complex RVC inference call
-        # 1. Load Net
-        # 2. Extract F0
-        # 3. Infer
-        logger.info(f"🎭 Applying Skin: {os.path.basename(model_path)} to {os.path.basename(audio_path)}")
+        Apply voice cloning to audio.
         
-        # Simulating processing time and copy for now if lib missing
-        import shutil
-        shutil.copy(audio_path, output_path)
-        return output_path
-
+        Args:
+            input_audio: Path to input TTS audio
+            reference_voice: Path to reference audio (for extracting voice model)
+            output_audio: Where to save cloned audio
+            pitch_shift: Semitones to shift pitch
+            index_rate: Feature retrieval strength (0-1)
+            
+        Returns:
+            Path to voice-cloned audio
+        """
+        if output_audio is None:
+            input_path = Path(input_audio)
+            output_audio = str(input_path.parent / f"{input_path.stem}_cloned.wav")
+        
+        logger.info(f"🎨 Applying RVC voice cloning...")
+        
+        try:
+            # Method 1: Try using Applio CLI if installed
+            if self.current_model:
+                cmd = [
+                    "python -m applio.infer",  
+                    "--input", input_audio,
+                    "--model", self.current_model,
+                    "--output", output_audio,
+                    "--pitch", str(pitch_shift),
+                    "--index_rate", str(index_rate)
+                ]
+                
+                result = subprocess.run(
+                    " ".join(cmd),
+                    shell=True,
+                    capture_output=True,
+                    text=True
+                )
+                
+                if result.returncode == 0 and Path(output_audio).exists():
+                    logger.info("✅ Voice cloning successful")
+                    return output_audio
+            
+            # Method 2: Try rvc-python package
+            try:
+                from rvc_python.infer import RVCInference
+                rvc = RVCInference(device="cuda")
+                rvc.infer_file(
+                    input_path=input_audio,
+                    output_path=output_audio,
+                    model_path=self.current_model,
+                    pitch=pitch_shift
+                )
+                logger.info("✅ Voice cloning successful (rvc-python)")
+                return output_audio
+            except ImportError:
+                pass
+            
+            # Fallback: Return original audio
+            logger.warning("⚠️ RVC not available, skipping voice cloning")
+            return input_audio
+            
+        except Exception as e:
+            logger.error(f"RVC cloning failed: {e}")
+            logger.warning("Returning original audio")
+            return input_audio
+    
     def unload(self):
-        if self.pipeline:
-            del self.pipeline
-            self.pipeline = None
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+        """Unload model."""
+        if self.current_model:
+            logger.info("🧹 Unloading RVC model...")
+            self.current_model = None
+            logger.info("✅ RVC model unloaded")
+
+
+if __name__ == "__main__":
+    # Quick test
+    logging.basicConfig(level=logging.INFO)
+    runner = ApplioRunner()
+    # result = runner.apply_skin("test.wav", reference_voice="ref.wav")
+    # print(f"Result: {result}")
+    print("✅ Applio runner initialized")
