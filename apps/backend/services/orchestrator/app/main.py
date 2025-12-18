@@ -1602,21 +1602,25 @@ async def get_options():
     Returns configuration options for frontend dropdowns.
     Called by frontend during initialization to populate selectors.
     """
+    # Fallback lists in case config config failed to load
+    dubbing_strategies = DUBBING_STRATEGIES or ["default", "translation_over", "full_replacement", "god_tier_draft", "god_tier_hollywood"]
+    translation_strategies = TRANSLATION_STRATEGIES or ["microsoft_translator", "google_translator", "deep_translator"]
+    
     return JSONResponse({
-        "dubbing_strategies": DUBBING_STRATEGIES or [],
-        "translation_strategies": TRANSLATION_STRATEGIES or [],
+        "dubbing_strategies": dubbing_strategies,
+        "translation_strategies": translation_strategies,
         "asr_models": [
-            {"filename": "whisperx", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko", "pt", "ru", "ar"]},
-            {"filename": "glm-asr", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]}
+            {"key": "whisperx", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko", "pt", "ru", "ar"]},
+            {"key": "glm-asr", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]}
         ],
         "translation_models": [
-            {"filename": "deep_translator", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko", "pt", "ru", "ar"]},
-            {"filename": "facebook_m2m100", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]}
+            {"key": "deep_translator", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko", "pt", "ru", "ar"]},
+            {"key": "facebook_m2m100", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]}
         ],
         "tts_models": [
-            {"filename": "chatterbox", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]},
-            {"filename": "f5-tts", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]},
-            {"filename": "kokoro", "languages": ["en"]}
+            {"key": "chatterbox", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]},
+            {"key": "f5-tts", "languages": ["en", "zh", "es", "fr", "de", "ja", "ko"]},
+            {"key": "kokoro", "languages": ["en"]}
         ],
         "audio_separation_models": [
             {
